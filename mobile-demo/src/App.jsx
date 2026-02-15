@@ -10,6 +10,7 @@ import coopAvatarImg from './assets/profile-coop.svg'
 const tabs = [
   { id: 'dashboard', label: 'Komuta' },
   { id: 'trade', label: 'Ticaret' },
+  { id: 'lobby', label: 'Lobi' },
   { id: 'coop', label: 'Koop' },
   { id: 'profiles', label: 'Profiller' },
   { id: 'finance', label: 'Finans' },
@@ -581,6 +582,62 @@ const cooperativeProfiles = [
   },
 ]
 
+const lobbyRegions = [
+  'Kuresel Lig',
+  'Avrupa Sunucusu',
+  'Asya Pasifik Sunucusu',
+  'Amerika Sunucusu',
+  'Hardcore Ekonomi',
+]
+
+const lobbyRosterSeed = [
+  {
+    id: 'you',
+    company: 'KureTrade Collective',
+    captain: 'Sen',
+    leagueMmr: 1432,
+    pingMs: 38,
+    ready: false,
+    isYou: true,
+  },
+  {
+    id: 'rival-1',
+    company: 'Baltic Crown',
+    captain: 'Lara Demir',
+    leagueMmr: 1565,
+    pingMs: 44,
+    ready: true,
+    isYou: false,
+  },
+  {
+    id: 'rival-2',
+    company: 'Atlas Meridian',
+    captain: 'Mina Yildiz',
+    leagueMmr: 1480,
+    pingMs: 63,
+    ready: false,
+    isYou: false,
+  },
+  {
+    id: 'rival-3',
+    company: 'Sino Harbor Union',
+    captain: 'Kenji Sato',
+    leagueMmr: 1432,
+    pingMs: 82,
+    ready: true,
+    isYou: false,
+  },
+  {
+    id: 'rival-4',
+    company: 'Gulf Frontier',
+    captain: 'Noor Al Fahim',
+    leagueMmr: 1370,
+    pingMs: 57,
+    ready: false,
+    isYou: false,
+  },
+]
+
 const tenderCatalog = [
   {
     id: 'tender-1',
@@ -717,19 +774,10 @@ const deterministicNoise = (seedValue) => {
   return (Math.sin(hash) + 1) / 2
 }
 
-const calculateRivalBid = (tender, atTime) => {
-  const cappedTime = Math.min(atTime, tender.closeAt)
-  const rounds = Math.max(0, Math.floor(cappedTime / 6))
-  return tender.rivalStartBid + rounds * tender.rivalStepAmount
-}
-
 const buildInitialTenderBoard = () =>
   tenderCatalog.map((tender, index) => {
-    const rivalStartBid = Math.round(
+    const rivalBid = Math.round(
       tender.minBid * (1.01 + deterministicNoise(`${tender.id}-rival-initial`) * 0.025),
-    )
-    const rivalStepAmount = Math.round(
-      tender.minBid * (0.008 + deterministicNoise(`${tender.id}-rival-step`) * tender.bidStepRate),
     )
 
     return {
@@ -739,8 +787,7 @@ const buildInitialTenderBoard = () =>
       awardedAt: null,
       penaltyPaid: 0,
       playerBid: tender.minBid,
-      rivalStartBid,
-      rivalStepAmount,
+      rivalBid,
       bondLocked: 0,
       hasPlayerBid: false,
       closeAt: tender.durationSec + index * 28,
@@ -776,6 +823,27 @@ function App() {
   const [leaguePoints, setLeaguePoints] = useState(1310)
   const [portfolio, setPortfolio] = useState(780000)
   const [escrowedBond, setEscrowedBond] = useState(0)
+  const [wsConnected, setWsConnected] = useState(true)
+  const [wsLatencyMs, setWsLatencyMs] = useState(42)
+  const [socketFeed, setSocketFeed] = useState([
+    {
+      id: 'ws-1',
+      type: 'system',
+      text: 'WebSocket baglandi. Ihale akisi ve lobi verisi canli.',
+      at: '00:00:00',
+    },
+  ])
+  const [lobbyRegion, setLobbyRegion] = useState(lobbyRegions[0])
+  const [lobbyPlayers, setLobbyPlayers] = useState(lobbyRosterSeed)
+  const [lobbyChatInput, setLobbyChatInput] = useState('')
+  const [lobbyChat, setLobbyChat] = useState([
+    {
+      id: 'chat-1',
+      author: 'Lobi Botu',
+      text: 'Lobi acildi. Hazir oldugunda durumunu guncelle.',
+      at: '00:00:00',
+    },
+  ])
   const [gameTime, setGameTime] = useState(0)
   const [tenderBoard, setTenderBoard] = useState(() => buildInitialTenderBoard())
   const [inTransitJobs, setInTransitJobs] = useState([])
@@ -806,6 +874,11 @@ function App() {
     },
   ])
   const idCounter = useRef(1000)
+  const wsEventCounterRef = useRef(2)
+  const wsTickRef = useRef(0)
+  const lobbyChatCounterRef = useRef(2)
+  const gameTimeRef = useRef(0)
+  const settleDueEventsRef = useRef(null)
 
   const nextId = () => {
     idCounter.current += 1
@@ -814,7 +887,12 @@ function App() {
 
   useEffect(() => {
     const timerId = window.setInterval(() => {
-      setGameTime((prev) => prev + 1)
+      setGameTime((prev) => {
+        const next = prev + 1
+        gameTimeRef.current = next
+        settleDueEventsRef.current?.(next)
+        return next
+      })
     }, 1000)
 
     return () => {
@@ -1020,22 +1098,25 @@ function App() {
     () => Object.values(vehicleFailures).filter(Boolean).length,
     [vehicleFailures],
   )
+  const readyPlayerCount = useMemo(
+    () => lobbyPlayers.filter((player) => player.ready).length,
+    [lobbyPlayers],
+  )
+  const youAreReady = useMemo(
+    () => lobbyPlayers.find((player) => player.isYou)?.ready ?? false,
+    [lobbyPlayers],
+  )
 
   const tenderRows = useMemo(
     () =>
-      tenderBoard.map((tender) => {
-        const rivalBid = calculateRivalBid(tender, gameTime)
-
-        return {
-          ...tender,
-          rivalBid,
-          timeLeftSec: Math.max(0, tender.closeAt - gameTime),
-          isOpen: tender.status === 'open' && tender.closeAt > gameTime,
-          minCollateral: Math.round(tender.minBid * tender.minCollateralRate),
-          playerLeading: tender.playerBid >= rivalBid,
-          spread: tender.playerBid - rivalBid,
-        }
-      }),
+      tenderBoard.map((tender) => ({
+        ...tender,
+        timeLeftSec: Math.max(0, tender.closeAt - gameTime),
+        isOpen: tender.status === 'open' && tender.closeAt > gameTime,
+        minCollateral: Math.round(tender.minBid * tender.minCollateralRate),
+        playerLeading: tender.playerBid >= tender.rivalBid,
+        spread: tender.playerBid - tender.rivalBid,
+      })),
     [tenderBoard, gameTime],
   )
 
@@ -1133,8 +1214,7 @@ function App() {
       const vehicle = fleetByMode[tender.mode][0]
       const product = productCatalog.find((entry) => entry.id === tender.productId) ?? productCatalog[0]
       const opponent = leagueOpponents[index % leagueOpponents.length].name
-      const rivalBidAtClose = calculateRivalBid(tender, targetTime)
-      const playerWon = tender.playerBid >= rivalBidAtClose && tender.hasPlayerBid && tender.bondLocked > 0
+      const playerWon = tender.playerBid >= tender.rivalBid && tender.hasPlayerBid && tender.bondLocked > 0
 
       if (!playerWon || !route || !vehicle) {
         const penalty = Math.round(tender.bondLocked * 0.33)
@@ -1355,6 +1435,245 @@ function App() {
     wearQueue.forEach((wearItem) => {
       wearVehicle(wearItem.vehicleId, wearItem.wearAmount, wearItem.riskContext, wearItem.source)
     })
+  }
+  settleDueEventsRef.current = settleDueEvents
+
+  useEffect(() => {
+    if (!wsConnected) {
+      return undefined
+    }
+
+    const wsIntervalId = window.setInterval(() => {
+      wsTickRef.current += 1
+      const tick = wsTickRef.current
+      const now = gameTimeRef.current
+
+      const pushSocketEvent = (type, text, atTime = now) => {
+        const eventId = `ws-${wsEventCounterRef.current}`
+        wsEventCounterRef.current += 1
+
+        setSocketFeed((prev) =>
+          [
+            {
+              id: eventId,
+              type,
+              text,
+              at: formatGameClock(atTime),
+            },
+            ...prev,
+          ].slice(0, 24),
+        )
+      }
+
+      const simulatedLatency = 24 + Math.round(deterministicNoise(`${lobbyRegion}-${tick}-latency`) * 92)
+      setWsLatencyMs(simulatedLatency)
+
+      let raisedTenderTitle = ''
+      let raisedAmount = 0
+      setTenderBoard((prev) => {
+        let updatedAny = false
+        const updated = prev.map((tender) => {
+          if (tender.status !== 'open' || tender.closeAt <= now) {
+            return tender
+          }
+
+          const shouldRaise = deterministicNoise(`${tender.id}-${tick}-ws-trigger`) > 0.63
+          if (!shouldRaise) {
+            return tender
+          }
+
+          const increment = Math.max(
+            5000,
+            Math.round(
+              tender.minBid *
+                (0.004 + deterministicNoise(`${tender.id}-${tick}-ws-increment`) * tender.bidStepRate),
+            ),
+          )
+
+          updatedAny = true
+          if (!raisedTenderTitle) {
+            raisedTenderTitle = tender.title
+            raisedAmount = increment
+          }
+
+          return {
+            ...tender,
+            rivalBid: tender.rivalBid + increment,
+          }
+        })
+
+        return updatedAny ? updated : prev
+      })
+
+      setLobbyPlayers((prev) =>
+        prev.map((player) => {
+          const simulatedPing = 24 + Math.round(deterministicNoise(`${player.id}-${tick}-ping`) * 94)
+
+          if (player.isYou) {
+            return {
+              ...player,
+              pingMs: Math.max(16, Math.round(simulatedLatency * 0.72)),
+            }
+          }
+
+          return {
+            ...player,
+            ready: deterministicNoise(`${player.id}-${tick}-ready`) > 0.42,
+            pingMs: simulatedPing,
+          }
+        }),
+      )
+
+      if (raisedTenderTitle) {
+        pushSocketEvent('bid', `${raisedTenderTitle}: rakip teklif +${formatMoney(raisedAmount)}.`)
+      } else if (tick % 2 === 0) {
+        pushSocketEvent('heartbeat', `${lobbyRegion} websocket heartbeat alindi.`)
+      }
+
+      if (tick % 3 === 0) {
+        const botSpeaker = lobbyRosterSeed[1 + (tick % (lobbyRosterSeed.length - 1))]
+        const chatId = `chat-${lobbyChatCounterRef.current}`
+        lobbyChatCounterRef.current += 1
+
+        setLobbyChat((prev) =>
+          [
+            {
+              id: chatId,
+              author: botSpeaker.company,
+              text: 'Ihale masasi hizlandi, herkes teminatini hazir tutsun.',
+              at: formatGameClock(now),
+            },
+            ...prev,
+          ].slice(0, 24),
+        )
+      }
+    }, 2500)
+
+    return () => {
+      window.clearInterval(wsIntervalId)
+    }
+  }, [lobbyRegion, wsConnected])
+
+  const toggleSocketConnection = () => {
+    setWsConnected((prev) => {
+      const next = !prev
+      const eventId = `ws-${wsEventCounterRef.current}`
+      wsEventCounterRef.current += 1
+
+      setSocketFeed((feed) =>
+        [
+          {
+            id: eventId,
+            type: 'system',
+            text: next ? 'WebSocket yeniden baglandi.' : 'WebSocket baglantisi gecici olarak kapatildi.',
+            at: formatGameClock(gameTimeRef.current),
+          },
+          ...feed,
+        ].slice(0, 24),
+      )
+
+      return next
+    })
+  }
+
+  const toggleReadyState = () => {
+    let nextReady = false
+    setLobbyPlayers((prev) =>
+      prev.map((player) => {
+        if (!player.isYou) {
+          return player
+        }
+
+        nextReady = !player.ready
+        return {
+          ...player,
+          ready: nextReady,
+        }
+      }),
+    )
+
+    const eventId = `ws-${wsEventCounterRef.current}`
+    wsEventCounterRef.current += 1
+    setSocketFeed((feed) =>
+      [
+        {
+          id: eventId,
+          type: 'lobby',
+          text: nextReady ? 'Senin Koop hazir durumuna gecti.' : 'Senin Koop hazir durumundan cikti.',
+          at: formatGameClock(gameTimeRef.current),
+        },
+        ...feed,
+      ].slice(0, 24),
+    )
+  }
+
+  const sendLobbyMessage = () => {
+    const trimmedMessage = lobbyChatInput.trim()
+    if (!trimmedMessage) {
+      return
+    }
+
+    const chatId = `chat-${lobbyChatCounterRef.current}`
+    lobbyChatCounterRef.current += 1
+    const eventId = `ws-${wsEventCounterRef.current}`
+    wsEventCounterRef.current += 1
+
+    setLobbyChat((prev) =>
+      [
+        {
+          id: chatId,
+          author: 'Sen',
+          text: trimmedMessage,
+          at: formatGameClock(gameTimeRef.current),
+        },
+        ...prev,
+      ].slice(0, 24),
+    )
+    setSocketFeed((feed) =>
+      [
+        {
+          id: eventId,
+          type: 'chat',
+          text: `Lobi mesaji gonderildi: "${trimmedMessage}"`,
+          at: formatGameClock(gameTimeRef.current),
+        },
+        ...feed,
+      ].slice(0, 24),
+    )
+    setLobbyChatInput('')
+  }
+
+  const startLobbyMatchmaking = () => {
+    if (!youAreReady) {
+      const eventId = `ws-${wsEventCounterRef.current}`
+      wsEventCounterRef.current += 1
+      setSocketFeed((feed) =>
+        [
+          {
+            id: eventId,
+            type: 'warning',
+            text: 'Eslesme icin once kendi hazir durumunu acmalisin.',
+            at: formatGameClock(gameTimeRef.current),
+          },
+          ...feed,
+        ].slice(0, 24),
+      )
+      return
+    }
+
+    const eventId = `ws-${wsEventCounterRef.current}`
+    wsEventCounterRef.current += 1
+    setSocketFeed((feed) =>
+      [
+        {
+          id: eventId,
+          type: 'lobby',
+          text: `${lobbyRegion} icin eslesme araniyor. Hazir oyuncu: ${readyPlayerCount}/${lobbyPlayers.length}.`,
+          at: formatGameClock(gameTimeRef.current),
+        },
+        ...feed,
+      ].slice(0, 24),
+    )
   }
 
   const queueTransitJob = ({
@@ -1603,6 +1922,19 @@ function App() {
         },
         ...prev,
       ].slice(0, 18),
+    )
+    const eventId = `ws-${wsEventCounterRef.current}`
+    wsEventCounterRef.current += 1
+    setSocketFeed((feed) =>
+      [
+        {
+          id: eventId,
+          type: 'bid',
+          text: `${tender.title} ihalende teklif ${formatMoney(nextPlayerBid)} seviyesine cikarildi.`,
+          at: formatGameClock(gameTimeRef.current),
+        },
+        ...feed,
+      ].slice(0, 24),
     )
   }
 
@@ -2055,6 +2387,34 @@ function App() {
               </section>
 
               <section className="panel">
+                <div className="panel-title-row">
+                  <h2>WebSocket Ihale Akisi</h2>
+                  <span className={wsConnected ? 'socket-status live' : 'socket-status down'}>
+                    {wsConnected ? 'Bagli' : 'Kesik'} | {wsLatencyMs} ms
+                  </span>
+                </div>
+                <div className="button-row">
+                  <button type="button" className="ghost-btn compact-btn" onClick={toggleSocketConnection}>
+                    {wsConnected ? 'Socketi Durdur' : 'Socketi Bagla'}
+                  </button>
+                  <button type="button" className="ghost-btn compact-btn" onClick={startLobbyMatchmaking}>
+                    Eslesme Sinyali Gonder
+                  </button>
+                </div>
+                <div className="socket-feed-list">
+                  {socketFeed.slice(0, 6).map((event) => (
+                    <article key={event.id} className="socket-feed-item">
+                      <div>
+                        <strong>{event.type.toUpperCase()}</strong>
+                        <p>{event.text}</p>
+                      </div>
+                      <span>{event.at}</span>
+                    </article>
+                  ))}
+                </div>
+              </section>
+
+              <section className="panel">
                 <h2>Sure Sinirli Ihale Masasi</h2>
                 <p className="muted">
                   Asgari teminat yatirmadan teklif gecerli olmaz. Rakipler canli artirim yapar;
@@ -2163,6 +2523,110 @@ function App() {
                       <span className={item.delta >= 0 ? 'positive' : 'negative'}>
                         {formatMoney(item.delta)}
                       </span>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            </>
+          )}
+
+          {activeTab === 'lobby' && (
+            <>
+              <section className="panel">
+                <div className="panel-title-row">
+                  <h2>Cok Oyunculu Lobi Paneli</h2>
+                  <span className={wsConnected ? 'socket-status live' : 'socket-status down'}>
+                    {wsConnected ? 'Socket online' : 'Socket offline'}
+                  </span>
+                </div>
+                <div className="lobby-controls">
+                  <label>
+                    Sunucu Havuzu
+                    <select value={lobbyRegion} onChange={(event) => setLobbyRegion(event.target.value)}>
+                      {lobbyRegions.map((region) => (
+                        <option key={region} value={region}>
+                          {region}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="button-row">
+                    <button type="button" className="primary-btn no-top" onClick={toggleReadyState}>
+                      {youAreReady ? 'Haziri Kapat' : 'Hazir Ol'}
+                    </button>
+                    <button type="button" className="ghost-btn" onClick={startLobbyMatchmaking}>
+                      Eslesme Ara
+                    </button>
+                  </div>
+                </div>
+                <p className="muted">
+                  Hazir oyuncu: {readyPlayerCount}/{lobbyPlayers.length} | Gecikme: {wsLatencyMs} ms
+                </p>
+              </section>
+
+              <section className="panel">
+                <h2>Lobi Oyunculari</h2>
+                <div className="lobby-player-list">
+                  {lobbyPlayers.map((player) => (
+                    <article key={player.id} className="lobby-player-item">
+                      <div>
+                        <strong>{player.company}</strong>
+                        <p>
+                          Kaptan: {player.captain} | MMR: {player.leagueMmr}
+                        </p>
+                      </div>
+                      <div className="lobby-player-meta">
+                        <span>{player.pingMs} ms</span>
+                        <span className={player.ready ? 'ready-badge on' : 'ready-badge off'}>
+                          {player.ready ? 'Hazir' : 'Beklemede'}
+                        </span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+
+              <section className="panel">
+                <h2>Lobi Sohbeti</h2>
+                <div className="lobby-chat-input">
+                  <input
+                    type="text"
+                    value={lobbyChatInput}
+                    onChange={(event) => setLobbyChatInput(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        sendLobbyMessage()
+                      }
+                    }}
+                    placeholder="Lobiye mesaj gonder..."
+                  />
+                  <button type="button" className="ghost-btn compact-btn" onClick={sendLobbyMessage}>
+                    Gonder
+                  </button>
+                </div>
+                <div className="chat-list">
+                  {lobbyChat.map((message) => (
+                    <article key={message.id} className="chat-item">
+                      <div>
+                        <strong>{message.author}</strong>
+                        <p>{message.text}</p>
+                      </div>
+                      <span>{message.at}</span>
+                    </article>
+                  ))}
+                </div>
+              </section>
+
+              <section className="panel">
+                <h2>WebSocket Event Akisi</h2>
+                <div className="socket-feed-list">
+                  {socketFeed.map((event) => (
+                    <article key={event.id} className="socket-feed-item">
+                      <div>
+                        <strong>{event.type.toUpperCase()}</strong>
+                        <p>{event.text}</p>
+                      </div>
+                      <span>{event.at}</span>
                     </article>
                   ))}
                 </div>

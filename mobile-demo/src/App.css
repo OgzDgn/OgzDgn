@@ -407,6 +407,10 @@ input[type='range'] {
   color: white;
 }
 
+.primary-btn.no-top {
+  margin-top: 0;
+}
+
 .ghost-btn {
   border: 1px solid rgba(146, 175, 222, 0.4);
   background: rgba(14, 30, 49, 0.75);
@@ -470,6 +474,26 @@ input[type='range'] {
   background: rgba(15, 29, 46, 0.74);
 }
 
+.lobby-player-list,
+.chat-list,
+.socket-feed-list {
+  display: grid;
+  gap: 8px;
+}
+
+.lobby-player-item,
+.chat-item,
+.socket-feed-item {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 11px;
+  padding: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  background: rgba(15, 29, 46, 0.74);
+}
+
 .log-item p,
 .member-item p,
 .stock-item p,
@@ -482,7 +506,10 @@ input[type='range'] {
 .transit-item p,
 .auction-item p,
 .maintenance-item p,
-.profile-card p {
+.profile-card p,
+.lobby-player-item p,
+.chat-item p,
+.socket-feed-item p {
   margin: 0;
   color: #8ea6c8;
   font-size: 0.75rem;
@@ -498,7 +525,10 @@ input[type='range'] {
 .transit-item strong,
 .auction-item strong,
 .maintenance-item strong,
-.profile-card strong {
+.profile-card strong,
+.lobby-player-item strong,
+.chat-item strong,
+.socket-feed-item strong {
   font-size: 0.86rem;
 }
 
@@ -573,6 +603,23 @@ input[type='range'] {
   color: #ffc0ca;
 }
 
+.socket-status {
+  font-size: 0.72rem;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(129, 160, 206, 0.5);
+}
+
+.socket-status.live {
+  color: #8af0be;
+  border-color: rgba(104, 234, 178, 0.75);
+}
+
+.socket-status.down {
+  color: #ffc3cc;
+  border-color: rgba(255, 138, 154, 0.75);
+}
+
 .maintenance-actions {
   min-width: 140px;
   display: grid;
@@ -596,6 +643,48 @@ input[type='range'] {
 
 .fault-text {
   color: #ffc0ca;
+}
+
+.lobby-controls {
+  display: grid;
+  gap: 8px;
+}
+
+.lobby-player-meta {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+
+.ready-badge {
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 0.72rem;
+  border: 1px solid rgba(141, 167, 207, 0.5);
+}
+
+.ready-badge.on {
+  color: #9ff1c8;
+  border-color: rgba(100, 234, 177, 0.76);
+}
+
+.ready-badge.off {
+  color: #d2dff4;
+}
+
+.lobby-chat-input {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.lobby-chat-input input {
+  border-radius: 10px;
+  border: 1px solid rgba(126, 153, 203, 0.5);
+  background: rgba(13, 27, 43, 0.95);
+  color: #dce9ff;
+  padding: 9px;
 }
 
 .profile-highlight {
@@ -665,6 +754,10 @@ input[type='range'] {
   }
 
   .profile-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .lobby-player-list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
