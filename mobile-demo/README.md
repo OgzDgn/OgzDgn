@@ -74,3 +74,10 @@ npm run dev
 npm run build
 npm run preview
 ```
+
+## Canli Demo ve Indirme
+
+- Canli demo (GitHub Pages):  
+  `https://ogzdgn.github.io/OgzDgn/`
+- ZIP indirme (bu branch):  
+  `https://github.com/OgzDgn/OgzDgn/archive/refs/heads/cursor/mobil-k-resel-ticaret-oyunu-55de.zip`
