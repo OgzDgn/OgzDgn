@@ -77,7 +77,7 @@ npm run preview
 
 ## Canli Demo ve Indirme
 
-- Canli demo (jsDelivr CDN):  
-  `https://cdn.jsdelivr.net/gh/OgzDgn/OgzDgn@cursor/mobil-k-resel-ticaret-oyunu-55de/online-demo/index.html`
+- Canli demo (RawGitHack CDN):  
+  `https://raw.githack.com/OgzDgn/OgzDgn/cursor/mobil-k-resel-ticaret-oyunu-55de/online-demo/index.html`
 - ZIP indirme (bu branch):  
   `https://github.com/OgzDgn/OgzDgn/archive/refs/heads/cursor/mobil-k-resel-ticaret-oyunu-55de.zip`
