@@ -717,26 +717,35 @@ const deterministicNoise = (seedValue) => {
   return (Math.sin(hash) + 1) / 2
 }
 
+const calculateRivalBid = (tender, atTime) => {
+  const cappedTime = Math.min(atTime, tender.closeAt)
+  const rounds = Math.max(0, Math.floor(cappedTime / 6))
+  return tender.rivalStartBid + rounds * tender.rivalStepAmount
+}
+
 const buildInitialTenderBoard = () =>
-  tenderCatalog.map((tender, index) => ({
-    ...tender,
-    status: 'open',
-    winner: null,
-    awardedAt: null,
-    penaltyPaid: 0,
-    playerBid: tender.minBid,
-    rivalBid: Math.round(
+  tenderCatalog.map((tender, index) => {
+    const rivalStartBid = Math.round(
       tender.minBid * (1.01 + deterministicNoise(`${tender.id}-rival-initial`) * 0.025),
-    ),
-    leader:
-      tender.minBid >=
-      Math.round(tender.minBid * (1.01 + deterministicNoise(`${tender.id}-rival-initial`) * 0.025))
-        ? 'player'
-        : 'rival',
-    bondLocked: 0,
-    hasPlayerBid: false,
-    closeAt: tender.durationSec + index * 28,
-  }))
+    )
+    const rivalStepAmount = Math.round(
+      tender.minBid * (0.008 + deterministicNoise(`${tender.id}-rival-step`) * tender.bidStepRate),
+    )
+
+    return {
+      ...tender,
+      status: 'open',
+      winner: null,
+      awardedAt: null,
+      penaltyPaid: 0,
+      playerBid: tender.minBid,
+      rivalStartBid,
+      rivalStepAmount,
+      bondLocked: 0,
+      hasPlayerBid: false,
+      closeAt: tender.durationSec + index * 28,
+    }
+  })
 
 function App() {
   const cityById = useMemo(
@@ -812,32 +821,6 @@ function App() {
       window.clearInterval(timerId)
     }
   }, [])
-
-  useEffect(() => {
-    if (gameTime === 0 || gameTime % 6 !== 0) {
-      return
-    }
-
-    setTenderBoard((prev) =>
-      prev.map((tender) => {
-        if (tender.status !== 'open' || tender.closeAt <= gameTime) {
-          return tender
-        }
-
-        const increment = Math.round(
-          tender.minBid *
-            (0.008 + deterministicNoise(`${tender.id}-${gameTime}-rival-raise`) * tender.bidStepRate),
-        )
-        const nextRivalBid = tender.rivalBid + increment
-
-        return {
-          ...tender,
-          rivalBid: nextRivalBid,
-          leader: tender.playerBid >= nextRivalBid ? 'player' : 'rival',
-        }
-      }),
-    )
-  }, [gameTime])
 
   const scenario = useMemo(
     () => scenarioCatalog.find((item) => item.id === scenarioId) ?? scenarioCatalog[0],
@@ -1040,14 +1023,19 @@ function App() {
 
   const tenderRows = useMemo(
     () =>
-      tenderBoard.map((tender) => ({
-        ...tender,
-        timeLeftSec: Math.max(0, tender.closeAt - gameTime),
-        isOpen: tender.status === 'open' && tender.closeAt > gameTime,
-        minCollateral: Math.round(tender.minBid * tender.minCollateralRate),
-        playerLeading: tender.playerBid >= tender.rivalBid,
-        spread: tender.playerBid - tender.rivalBid,
-      })),
+      tenderBoard.map((tender) => {
+        const rivalBid = calculateRivalBid(tender, gameTime)
+
+        return {
+          ...tender,
+          rivalBid,
+          timeLeftSec: Math.max(0, tender.closeAt - gameTime),
+          isOpen: tender.status === 'open' && tender.closeAt > gameTime,
+          minCollateral: Math.round(tender.minBid * tender.minCollateralRate),
+          playerLeading: tender.playerBid >= rivalBid,
+          spread: tender.playerBid - rivalBid,
+        }
+      }),
     [tenderBoard, gameTime],
   )
 
@@ -1145,7 +1133,8 @@ function App() {
       const vehicle = fleetByMode[tender.mode][0]
       const product = productCatalog.find((entry) => entry.id === tender.productId) ?? productCatalog[0]
       const opponent = leagueOpponents[index % leagueOpponents.length].name
-      const playerWon = tender.playerBid >= tender.rivalBid && tender.hasPlayerBid && tender.bondLocked > 0
+      const rivalBidAtClose = calculateRivalBid(tender, targetTime)
+      const playerWon = tender.playerBid >= rivalBidAtClose && tender.hasPlayerBid && tender.bondLocked > 0
 
       if (!playerWon || !route || !vehicle) {
         const penalty = Math.round(tender.bondLocked * 0.33)
@@ -1600,7 +1589,6 @@ function App() {
               bondLocked: minCollateral,
               hasPlayerBid: true,
               playerBid: nextPlayerBid,
-              leader: nextPlayerBid >= item.rivalBid ? 'player' : 'rival',
             }
           : item,
       ),
@@ -1683,10 +1671,6 @@ function App() {
     setGameTime(nextTime)
     settleDueEvents(nextTime)
   }
-
-  useEffect(() => {
-    settleDueEvents(gameTime)
-  }, [gameTime])
 
   const takeLoan = () => {
     settleDueEvents(gameTime)
@@ -2128,7 +2112,9 @@ function App() {
                                 ? `Kontrat iptali | Ceza: ${formatMoney(tender.penaltyPaid)}`
                               : tender.status === 'expired'
                                 ? `Kapanis: ${tender.winner} | Ceza: ${formatMoney(tender.penaltyPaid)}`
-                                : 'Durum: Acik'}
+                                : tender.isOpen
+                                  ? 'Durum: Acik'
+                                  : 'Sure doldu, guncelle'}
                           </p>
                         </div>
                       </article>
