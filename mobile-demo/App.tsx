@@ -436,6 +436,10 @@ export default function App() {
   const [roomId, setRoomId] = useState<string>('global-room');
   const [playerName, setPlayerName] = useState<string>('Mobil Komutan');
   const [playerCompany, setPlayerCompany] = useState<string>('Ticarium Union');
+  const [authEmail, setAuthEmail] = useState<string>('player@example.com');
+  const [authPassword, setAuthPassword] = useState<string>('StrongPass123');
+  const [authToken, setAuthToken] = useState<string>('');
+  const [authRole, setAuthRole] = useState<string>('player');
   const [onlineConnected, setOnlineConnected] = useState<boolean>(false);
   const [onlineError, setOnlineError] = useState<string | null>(null);
   const [onlineWeek, setOnlineWeek] = useState<number>(1);
@@ -523,6 +527,8 @@ export default function App() {
     setEventFeed((prev) => [entry, ...prev].slice(0, 12));
   };
 
+  const getBackendBaseUrl = () => backendUrl.trim().replace(/\/+$/, '');
+
   const applyOnlineSnapshot = (snapshot: OnlineRoomSnapshot) => {
     setOnlineWeek(snapshot.week);
     setOnlinePlayers(snapshot.players);
@@ -536,11 +542,12 @@ export default function App() {
       socketRef.current = null;
     }
     setOnlineConnected(false);
+    setOnlinePlayerId(null);
   };
 
   const refreshOnlineState = async () => {
     try {
-      const response = await fetch(`${backendUrl}/api/rooms/${encodeURIComponent(roomId)}/state`);
+      const response = await fetch(`${getBackendBaseUrl()}/api/rooms/${encodeURIComponent(roomId)}/state`);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
@@ -553,19 +560,113 @@ export default function App() {
     }
   };
 
+  const registerOnlineAccount = async () => {
+    try {
+      const response = await fetch(`${getBackendBaseUrl()}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: authEmail,
+          password: authPassword,
+          displayName: playerName,
+          companyName: playerCompany,
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.message ?? `HTTP ${response.status}`);
+      }
+
+      setAuthToken(payload.token ?? '');
+      setAuthRole(payload.user?.role ?? 'player');
+      addFeedEntry(`Hafta ${economy.week}: Hesap olusturuldu ve token alindi.`);
+      setOnlineError(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Kayit hatasi';
+      setOnlineError(`Kayit basarisiz: ${message}`);
+    }
+  };
+
+  const loginOnlineAccount = async () => {
+    try {
+      const response = await fetch(`${getBackendBaseUrl()}/api/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: authEmail,
+          password: authPassword,
+        }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload?.message ?? `HTTP ${response.status}`);
+      }
+
+      setAuthToken(payload.token ?? '');
+      setAuthRole(payload.user?.role ?? 'player');
+      setPlayerName(payload.user?.displayName ?? playerName);
+      setPlayerCompany(payload.user?.companyName ?? playerCompany);
+      addFeedEntry(`Hafta ${economy.week}: Giris basarili, JWT alindi.`);
+      setOnlineError(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Giris hatasi';
+      setOnlineError(`Giris basarisiz: ${message}`);
+    }
+  };
+
   const connectOnline = async () => {
     disconnectOnline();
     setOnlineError(null);
+
+    if (!authToken.trim()) {
+      setOnlineError('Baglanmadan once hesap ac veya giris yapip token al.');
+      return;
+    }
+
+    try {
+      const joinResponse = await fetch(`${getBackendBaseUrl()}/api/rooms/${encodeURIComponent(roomId)}/join`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({
+          displayName: playerName,
+          companyName: playerCompany,
+        }),
+      });
+
+      const joinPayload = await joinResponse.json();
+      if (!joinResponse.ok) {
+        throw new Error(joinPayload?.message ?? `HTTP ${joinResponse.status}`);
+      }
+
+      setOnlinePlayerId(joinPayload.playerId ?? null);
+      if (joinPayload.snapshot) {
+        applyOnlineSnapshot(joinPayload.snapshot as OnlineRoomSnapshot);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Odaya giris hatasi';
+      setOnlineError(`Oda baglantisi kurulamadi: ${message}`);
+      return;
+    }
+
     await refreshOnlineState();
 
-    const socket = io(backendUrl, {
+    const socket = io(getBackendBaseUrl(), {
       transports: ['websocket'],
       timeout: 5000,
-      query: {
+      auth: {
+        token: authToken,
         roomId,
         playerName,
         company: playerCompany,
-        playerId: onlinePlayerId ?? '',
       },
     });
 
@@ -1237,8 +1338,40 @@ export default function App() {
     <View style={styles.card}>
       <Text style={styles.cardTitle}>Cevrimici cok oyunculu baglanti</Text>
       <Text style={styles.cardHint}>
-        Backend URL ve oda bilgisini gir, sonra baglan. Bagliyken sevkiyat/kriz hareketleri socket ile odaya yayilir.
+        Once hesap ac veya giris yap. Sonra backend URL ve oda bilgisini girip JWT ile baglan.
       </Text>
+
+      <Text style={styles.inputLabel}>Hesap (e-posta / sifre)</Text>
+      <View style={styles.inlineInputs}>
+        <TextInput
+          value={authEmail}
+          onChangeText={setAuthEmail}
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={[styles.input, styles.inlineInput]}
+          placeholder="player@example.com"
+          placeholderTextColor="#64748b"
+        />
+        <TextInput
+          value={authPassword}
+          onChangeText={setAuthPassword}
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={[styles.input, styles.inlineInput]}
+          secureTextEntry
+          placeholder="Sifre"
+          placeholderTextColor="#64748b"
+        />
+      </View>
+
+      <View style={styles.buttonRow}>
+        <Pressable style={styles.secondaryButton} onPress={registerOnlineAccount}>
+          <Text style={styles.secondaryButtonText}>Hesap olustur</Text>
+        </Pressable>
+        <Pressable style={styles.secondaryButton} onPress={loginOnlineAccount}>
+          <Text style={styles.secondaryButtonText}>Giris yap</Text>
+        </Pressable>
+      </View>
 
       <Text style={styles.inputLabel}>Backend URL</Text>
       <TextInput
@@ -1292,7 +1425,8 @@ export default function App() {
       </View>
 
       <Text style={styles.rowMeta}>
-        Durum: {onlineConnected ? 'Bagli' : 'Bagli degil'} | Oda hafta: {onlineWeek}
+        Yetki: {authToken ? `JWT hazir (${authRole})` : 'JWT yok'} | Durum: {onlineConnected ? 'Bagli' : 'Bagli degil'} | Oda hafta:{' '}
+        {onlineWeek}
       </Text>
       {onlineError ? <Text style={[styles.rowMeta, styles.negative]}>{onlineError}</Text> : null}
 

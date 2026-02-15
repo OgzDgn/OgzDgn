@@ -4,17 +4,23 @@
   "description": "Ticarium global trade multiplayer backend demo",
   "main": "server.js",
   "scripts": {
+    "migrate": "node db/migrate.js",
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "check": "node --check server.js"
+    "check": "node --check server.js && node --check db/migrate.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.18.0",
     "socket.io": "^4.8.3",
-    "uuid": "^13.0.0"
+    "zod": "^4.3.6"
   }
 }

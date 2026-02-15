@@ -11,7 +11,7 @@ Bu klasor, istedigin "dunya capinda mobil ticaret oyunu" icin hazirlanan Expo ta
 - Risk sistemi: korsan, sinir krizi, hava yasaklari, liman grevi, vergi cezasi
 - Kooperatif mekanigi: ortak filo, savunma fonu, gelir paylasimi, global siralama
 - Kriz sezonu: savas, petrol krizi, pandemi, liman grevi, sinir krizi
-- Cevrimici panel: backend URL, oda baglantisi, online oyuncu listesi, online lider tablo
+- Cevrimici panel: hesap olusturma/giris (JWT), oda baglantisi, online oyuncu listesi, online lider tablo
 
 ## Lokal calistirma
 
@@ -50,11 +50,13 @@ npx expo start --tunnel
 ```bash
 cd backend
 npm install
+npm run migrate
 npm start
 ```
 
 2. Mobil uygulamada `Kriz` sekmesine gir.
 3. "Cevrimici cok oyunculu baglanti" kartinda:
+   - E-posta + sifre ile hesap olustur veya giris yap
    - Backend URL
    - Oda ID
    - Oyuncu / Sirket
@@ -64,4 +66,4 @@ npm start
 
 ## Not
 
-Bu yapi demo amaclidir; production icin kimlik dogrulama, veritabani kaliciligi, rate-limit ve anti-cheat katmanlari eklenmelidir.
+Bu yapi artik PostgreSQL + JWT + anti-cheat temeli icerir; production seviyesinde yine de cache, gozlemlenebilirlik, secret yonetimi ve gelismis anti-fraud kurallari eklenmelidir.
