@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import './App.css'
 
 const tabs = [
@@ -439,24 +439,20 @@ function App() {
     [mode],
   )
 
-  useEffect(() => {
-    if (!availableRoutes.some((route) => route.id === routeId)) {
-      setRouteId(availableRoutes[0]?.id ?? '')
-    }
-  }, [availableRoutes, routeId])
+  const normalizedRouteId = availableRoutes.some((route) => route.id === routeId)
+    ? routeId
+    : (availableRoutes[0]?.id ?? '')
 
   const availableVehicles = fleetByMode[mode]
 
-  useEffect(() => {
-    if (!availableVehicles.some((vehicle) => vehicle.id === vehicleId)) {
-      setVehicleId(availableVehicles[0]?.id ?? '')
-    }
-  }, [availableVehicles, vehicleId])
+  const normalizedVehicleId = availableVehicles.some((vehicle) => vehicle.id === vehicleId)
+    ? vehicleId
+    : (availableVehicles[0]?.id ?? '')
 
   const selectedRoute =
-    routeCatalog.find((route) => route.id === routeId) ?? availableRoutes[0] ?? null
+    routeCatalog.find((route) => route.id === normalizedRouteId) ?? availableRoutes[0] ?? null
   const selectedVehicle =
-    availableVehicles.find((vehicle) => vehicle.id === vehicleId) ?? availableVehicles[0]
+    availableVehicles.find((vehicle) => vehicle.id === normalizedVehicleId) ?? availableVehicles[0]
   const selectedProduct =
     productCatalog.find((product) => product.id === productId) ?? productCatalog[0]
 
@@ -737,7 +733,9 @@ function App() {
                       <div key={route.id} className="route-item">
                         <div>
                           <strong>
-                            {from.name} -> {to.name}
+                            {from.name}
+                            {' -> '}
+                            {to.name}
                           </strong>
                           <p>{route.distanceKm.toLocaleString('tr-TR')} km</p>
                         </div>
@@ -776,10 +774,15 @@ function App() {
 
                   <label>
                     Rota
-                    <select value={routeId} onChange={(event) => setRouteId(event.target.value)}>
+                    <select
+                      value={normalizedRouteId}
+                      onChange={(event) => setRouteId(event.target.value)}
+                    >
                       {availableRoutes.map((route) => (
                         <option key={route.id} value={route.id}>
-                          {cityById[route.from].name} -> {cityById[route.to].name}
+                          {cityById[route.from].name}
+                          {' -> '}
+                          {cityById[route.to].name}
                         </option>
                       ))}
                     </select>
@@ -787,7 +790,10 @@ function App() {
 
                   <label>
                     Arac/Filo
-                    <select value={vehicleId} onChange={(event) => setVehicleId(event.target.value)}>
+                    <select
+                      value={normalizedVehicleId}
+                      onChange={(event) => setVehicleId(event.target.value)}
+                    >
                       {availableVehicles.map((vehicle) => (
                         <option key={vehicle.id} value={vehicle.id}>
                           {vehicle.name} (Kapasite {vehicle.capacity} ton)
