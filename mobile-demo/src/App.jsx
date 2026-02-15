@@ -20,17 +20,55 @@ const cityCatalog = [
   {
     id: 'new-york',
     name: 'New York',
+    country: 'ABD',
     port: 'Port of New York and New Jersey',
     taxRate: 0.18,
     risk: 0.14,
     demand: ['Elektronik', 'Tibbi Malzeme', 'Luks Arac'],
     policy: 'Denetim yogun',
-    mapX: 20,
-    mapY: 40,
+    mapX: 19,
+    mapY: 41,
+  },
+  {
+    id: 'los-angeles',
+    name: 'Los Angeles',
+    country: 'ABD',
+    port: 'Port of Los Angeles',
+    taxRate: 0.19,
+    risk: 0.16,
+    demand: ['Elektronik', 'Luks Arac', 'Tibbi Malzeme'],
+    policy: 'Pasifik giris kapisi',
+    mapX: 11,
+    mapY: 43,
+  },
+  {
+    id: 'santos',
+    name: 'Santos',
+    country: 'Brezilya',
+    port: 'Port of Santos',
+    taxRate: 0.12,
+    risk: 0.21,
+    demand: ['Tahil', 'Petrol', 'Luks Arac'],
+    policy: 'Tarim ihracat merkezi',
+    mapX: 31,
+    mapY: 68,
+  },
+  {
+    id: 'lagos',
+    name: 'Lagos',
+    country: 'Nijerya',
+    port: 'Port of Lagos',
+    taxRate: 0.11,
+    risk: 0.23,
+    demand: ['Tahil', 'Petrol', 'Tibbi Malzeme'],
+    policy: 'Hizli buyuyen pazar',
+    mapX: 50,
+    mapY: 56,
   },
   {
     id: 'shanghai',
     name: 'Shanghai',
+    country: 'Cin',
     port: 'Shanghai Port',
     taxRate: 0.13,
     risk: 0.2,
@@ -42,6 +80,7 @@ const cityCatalog = [
   {
     id: 'istanbul',
     name: 'Istanbul',
+    country: 'Turkiye',
     port: 'Port of Ambarli',
     taxRate: 0.17,
     risk: 0.24,
@@ -53,6 +92,7 @@ const cityCatalog = [
   {
     id: 'dubai',
     name: 'Dubai',
+    country: 'BAE',
     port: 'Jebel Ali Port',
     taxRate: 0.09,
     risk: 0.18,
@@ -64,6 +104,7 @@ const cityCatalog = [
   {
     id: 'hamburg',
     name: 'Hamburg',
+    country: 'Almanya',
     port: 'Port of Hamburg',
     taxRate: 0.16,
     risk: 0.12,
@@ -73,8 +114,45 @@ const cityCatalog = [
     mapY: 32,
   },
   {
+    id: 'rotterdam',
+    name: 'Rotterdam',
+    country: 'Hollanda',
+    port: 'Port of Rotterdam',
+    taxRate: 0.17,
+    risk: 0.11,
+    demand: ['Tahil', 'Elektronik', 'Tibbi Malzeme'],
+    policy: 'AB lojistik merkezi',
+    mapX: 56,
+    mapY: 31,
+  },
+  {
+    id: 'mumbai',
+    name: 'Mumbai',
+    country: 'Hindistan',
+    port: 'Jawaharlal Nehru Port',
+    taxRate: 0.14,
+    risk: 0.19,
+    demand: ['Petrol', 'Tibbi Malzeme', 'Tahil'],
+    policy: 'Yuksek tuketim bolgesi',
+    mapX: 68,
+    mapY: 51,
+  },
+  {
+    id: 'singapore',
+    name: 'Singapore',
+    country: 'Singapur',
+    port: 'Port of Singapore',
+    taxRate: 0.12,
+    risk: 0.13,
+    demand: ['Elektronik', 'Nadir Madenler', 'Tibbi Malzeme'],
+    policy: 'Asya dagitim hatti',
+    mapX: 74,
+    mapY: 59,
+  },
+  {
     id: 'tokyo',
     name: 'Tokyo',
+    country: 'Japonya',
     port: 'Port of Tokyo',
     taxRate: 0.2,
     risk: 0.15,
@@ -132,6 +210,70 @@ const routeCatalog = [
     to: 'shanghai',
     distanceKm: 6500,
     baseRisk: 0.2,
+    modes: ['sea', 'air'],
+  },
+  {
+    id: 'singapore-dubai',
+    from: 'singapore',
+    to: 'dubai',
+    distanceKm: 5840,
+    baseRisk: 0.18,
+    modes: ['sea', 'air'],
+  },
+  {
+    id: 'singapore-shanghai',
+    from: 'singapore',
+    to: 'shanghai',
+    distanceKm: 3800,
+    baseRisk: 0.16,
+    modes: ['sea', 'air'],
+  },
+  {
+    id: 'mumbai-dubai',
+    from: 'mumbai',
+    to: 'dubai',
+    distanceKm: 1930,
+    baseRisk: 0.17,
+    modes: ['sea', 'air'],
+  },
+  {
+    id: 'mumbai-singapore',
+    from: 'mumbai',
+    to: 'singapore',
+    distanceKm: 3900,
+    baseRisk: 0.16,
+    modes: ['sea', 'air'],
+  },
+  {
+    id: 'lagos-istanbul',
+    from: 'lagos',
+    to: 'istanbul',
+    distanceKm: 4600,
+    baseRisk: 0.24,
+    modes: ['sea', 'air'],
+  },
+  {
+    id: 'rotterdam-istanbul',
+    from: 'rotterdam',
+    to: 'istanbul',
+    distanceKm: 2700,
+    baseRisk: 0.15,
+    modes: ['land', 'sea', 'air'],
+  },
+  {
+    id: 'santos-new-york',
+    from: 'santos',
+    to: 'new-york',
+    distanceKm: 7700,
+    baseRisk: 0.23,
+    modes: ['sea', 'air'],
+  },
+  {
+    id: 'los-angeles-shanghai',
+    from: 'los-angeles',
+    to: 'shanghai',
+    distanceKm: 10400,
+    baseRisk: 0.22,
     modes: ['sea', 'air'],
   },
 ]
@@ -448,8 +590,11 @@ const tenderCatalog = [
     productId: 'petrol',
     tons: 520,
     minBid: 1750000,
-    durationSec: 95,
-    deliveryWindowSec: 100,
+    durationSec: 130,
+    deliveryWindowSec: 110,
+    minCollateralRate: 0.12,
+    bidStepRate: 0.018,
+    latePenaltyRate: 0.34,
   },
   {
     id: 'tender-2',
@@ -461,17 +606,51 @@ const tenderCatalog = [
     minBid: 860000,
     durationSec: 120,
     deliveryWindowSec: 75,
+    minCollateralRate: 0.1,
+    bidStepRate: 0.016,
+    latePenaltyRate: 0.3,
   },
   {
     id: 'tender-3',
-    title: 'Tokyo Elektronik Hizli Hat',
-    routeId: 'tokyo-shanghai',
+    title: 'Singapore Nadir Maden Kontrati',
+    routeId: 'singapore-shanghai',
+    mode: 'sea',
+    productId: 'rare-minerals',
+    tons: 210,
+    minBid: 1480000,
+    durationSec: 150,
+    deliveryWindowSec: 95,
+    minCollateralRate: 0.14,
+    bidStepRate: 0.021,
+    latePenaltyRate: 0.36,
+  },
+  {
+    id: 'tender-4',
+    title: 'Rotterdam Tahil Koridoru',
+    routeId: 'rotterdam-istanbul',
+    mode: 'land',
+    productId: 'grain',
+    tons: 280,
+    minBid: 940000,
+    durationSec: 125,
+    deliveryWindowSec: 85,
+    minCollateralRate: 0.09,
+    bidStepRate: 0.014,
+    latePenaltyRate: 0.28,
+  },
+  {
+    id: 'tender-5',
+    title: 'Mumbai Medikal Hava Ekseni',
+    routeId: 'mumbai-dubai',
     mode: 'air',
-    productId: 'electronics',
-    tons: 95,
-    minBid: 1120000,
-    durationSec: 140,
-    deliveryWindowSec: 62,
+    productId: 'medical',
+    tons: 120,
+    minBid: 1210000,
+    durationSec: 118,
+    deliveryWindowSec: 70,
+    minCollateralRate: 0.11,
+    bidStepRate: 0.017,
+    latePenaltyRate: 0.32,
   },
 ]
 
@@ -544,12 +723,32 @@ const buildInitialTenderBoard = () =>
     status: 'open',
     winner: null,
     awardedAt: null,
+    penaltyPaid: 0,
+    playerBid: tender.minBid,
+    rivalBid: Math.round(
+      tender.minBid * (1.01 + deterministicNoise(`${tender.id}-rival-initial`) * 0.025),
+    ),
+    leader:
+      tender.minBid >=
+      Math.round(tender.minBid * (1.01 + deterministicNoise(`${tender.id}-rival-initial`) * 0.025))
+        ? 'player'
+        : 'rival',
+    bondLocked: 0,
+    hasPlayerBid: false,
     closeAt: tender.durationSec + index * 28,
   }))
 
 function App() {
   const cityById = useMemo(
     () => Object.fromEntries(cityCatalog.map((city) => [city.id, city])),
+    [],
+  )
+  const routeById = useMemo(
+    () => Object.fromEntries(routeCatalog.map((route) => [route.id, route])),
+    [],
+  )
+  const vehicleById = useMemo(
+    () => Object.fromEntries(allVehicles.map((vehicle) => [vehicle.id, vehicle])),
     [],
   )
 
@@ -567,11 +766,15 @@ function App() {
   const [reputation, setReputation] = useState(58)
   const [leaguePoints, setLeaguePoints] = useState(1310)
   const [portfolio, setPortfolio] = useState(780000)
+  const [escrowedBond, setEscrowedBond] = useState(0)
   const [gameTime, setGameTime] = useState(0)
   const [tenderBoard, setTenderBoard] = useState(() => buildInitialTenderBoard())
   const [inTransitJobs, setInTransitJobs] = useState([])
   const [vehicleCondition, setVehicleCondition] = useState(() =>
     Object.fromEntries(allVehicles.map((vehicle) => [vehicle.id, 100])),
+  )
+  const [vehicleFailures, setVehicleFailures] = useState(() =>
+    Object.fromEntries(allVehicles.map((vehicle) => [vehicle.id, false])),
   )
   const [operations, setOperations] = useState([
     {
@@ -609,6 +812,32 @@ function App() {
       window.clearInterval(timerId)
     }
   }, [])
+
+  useEffect(() => {
+    if (gameTime === 0 || gameTime % 6 !== 0) {
+      return
+    }
+
+    setTenderBoard((prev) =>
+      prev.map((tender) => {
+        if (tender.status !== 'open' || tender.closeAt <= gameTime) {
+          return tender
+        }
+
+        const increment = Math.round(
+          tender.minBid *
+            (0.008 + deterministicNoise(`${tender.id}-${gameTime}-rival-raise`) * tender.bidStepRate),
+        )
+        const nextRivalBid = tender.rivalBid + increment
+
+        return {
+          ...tender,
+          rivalBid: nextRivalBid,
+          leader: tender.playerBid >= nextRivalBid ? 'player' : 'rival',
+        }
+      }),
+    )
+  }, [gameTime])
 
   const scenario = useMemo(
     () => scenarioCatalog.find((item) => item.id === scenarioId) ?? scenarioCatalog[0],
@@ -655,6 +884,7 @@ function App() {
   const illegalPenalty = selectedProduct.illegal ? 0.16 : 0
   const distanceKm = selectedRoute?.distanceKm ?? 0
   const selectedVehicleHealth = vehicleCondition[selectedVehicle.id] ?? 100
+  const selectedVehicleFault = vehicleFailures[selectedVehicle.id] ?? false
   const maintenanceRiskPenalty = clamp((100 - selectedVehicleHealth) / 260, 0, 0.32)
   const maintenanceBacklogCost = selectedVehicle.maintenanceCost * (1 - selectedVehicleHealth / 100) * 0.2
 
@@ -790,12 +1020,33 @@ function App() {
     [],
   )
 
+  const mapRoutes = useMemo(
+    () =>
+      routeCatalog
+        .slice(0, 18)
+        .map((route) => ({
+          ...route,
+          fromCity: cityById[route.from],
+          toCity: cityById[route.to],
+        }))
+        .filter((route) => route.fromCity && route.toCity),
+    [cityById],
+  )
+
+  const faultedVehicleCount = useMemo(
+    () => Object.values(vehicleFailures).filter(Boolean).length,
+    [vehicleFailures],
+  )
+
   const tenderRows = useMemo(
     () =>
       tenderBoard.map((tender) => ({
         ...tender,
         timeLeftSec: Math.max(0, tender.closeAt - gameTime),
         isOpen: tender.status === 'open' && tender.closeAt > gameTime,
+        minCollateral: Math.round(tender.minBid * tender.minCollateralRate),
+        playerLeading: tender.playerBid >= tender.rivalBid,
+        spread: tender.playerBid - tender.rivalBid,
       })),
     [tenderBoard, gameTime],
   )
@@ -823,67 +1074,242 @@ function App() {
           ...vehicle,
           health,
           serviceCost,
+          hasFailure: vehicleFailures[vehicle.id] ?? false,
         }
       }),
-    [vehicleCondition],
+    [vehicleCondition, vehicleFailures],
   )
 
+  const wearVehicle = (vehicleId, wearAmount, riskContext = 0.15, source = 'operasyon') => {
+    const vehicleMeta = vehicleById[vehicleId]
+    const currentHealth = vehicleCondition[vehicleId] ?? 100
+    const nextHealth = clamp(currentHealth - wearAmount, 8, 100)
+
+    setVehicleCondition((prev) => ({
+      ...prev,
+      [vehicleId]: clamp((prev[vehicleId] ?? 100) - wearAmount, 8, 100),
+    }))
+
+    const faultRisk = clamp((44 - nextHealth) / 100 + riskContext * 0.36, 0, 0.72)
+    const faultRoll = deterministicNoise(`${vehicleId}-${gameTime}-${source}-fault`)
+    const shouldFault = nextHealth < 44 && faultRoll < faultRisk
+
+    if (shouldFault && !(vehicleFailures[vehicleId] ?? false)) {
+      const failureCost = Math.round((vehicleMeta?.maintenanceCost ?? 25000) * 0.12)
+      setVehicleFailures((prev) => ({
+        ...prev,
+        [vehicleId]: true,
+      }))
+      setCash((prev) => Math.max(0, prev - failureCost))
+      setOperations((prev) =>
+        [
+          {
+            id: nextId(),
+            title: `${vehicleMeta?.name ?? 'Arac'} ariza verdi`,
+            note: 'Bakim arizasi olustu. Arac bakim merkezine alinmadan tekrar sefere cikamaz.',
+            delta: -failureCost,
+          },
+          ...prev,
+        ].slice(0, 18),
+      )
+    }
+  }
+
   const settleDueEvents = (targetTime = gameTime) => {
-    const expiredTenders = tenderBoard.filter(
+    const dueJobs = inTransitJobs.filter((job) => job.etaAt <= targetTime)
+    const activeJobs = inTransitJobs.filter((job) => job.etaAt > targetTime)
+    const closedOpenTenders = tenderBoard.filter(
       (tender) => tender.status === 'open' && tender.closeAt <= targetTime,
     )
 
-    if (expiredTenders.length > 0) {
-      setTenderBoard((prev) =>
-        prev.map((tender, index) => {
-          if (tender.status === 'open' && tender.closeAt <= targetTime) {
-            return {
-              ...tender,
-              status: 'expired',
-              winner: leagueOpponents[index % leagueOpponents.length].name,
-            }
-          }
-
-          return tender
-        }),
-      )
-
-      setOperations((prev) =>
-        [
-          ...expiredTenders.map((tender, index) => ({
-            id: nextId(),
-            title: `Ihale kacirildi: ${tender.title}`,
-            note: `Sure doldu, ${leagueOpponents[index % leagueOpponents.length].name} kontrati aldi.`,
-            delta: 0,
-          })),
-          ...prev,
-        ].slice(0, 14),
-      )
-    }
-
-    const dueJobs = inTransitJobs.filter((job) => job.etaAt <= targetTime)
-    if (dueJobs.length === 0) {
+    if (dueJobs.length === 0 && closedOpenTenders.length === 0) {
       return
     }
 
     let cashDelta = 0
+    let escrowDelta = 0
     let debtAdjustment = 0
     let repAdjustment = 0
     let pointsAdjustment = 0
     let portfolioFactor = 1
+    const logEntries = []
+    const awardedTransitJobs = []
+    const wearQueue = []
 
-    const completions = dueJobs.map((job) => {
+    const resolvedTenders = tenderBoard.map((tender, index) => {
+      if (tender.status !== 'open' || tender.closeAt > targetTime) {
+        return tender
+      }
+
+      const route = routeById[tender.routeId]
+      const vehicle = fleetByMode[tender.mode][0]
+      const product = productCatalog.find((entry) => entry.id === tender.productId) ?? productCatalog[0]
+      const opponent = leagueOpponents[index % leagueOpponents.length].name
+      const playerWon = tender.playerBid >= tender.rivalBid && tender.hasPlayerBid && tender.bondLocked > 0
+
+      if (!playerWon || !route || !vehicle) {
+        const penalty = Math.round(tender.bondLocked * 0.33)
+        const refund = Math.max(0, tender.bondLocked - penalty)
+
+        cashDelta += refund
+        escrowDelta -= tender.bondLocked
+        repAdjustment += tender.bondLocked > 0 ? -2 : 0
+        pointsAdjustment += tender.bondLocked > 0 ? -5 : 0
+
+        logEntries.push({
+          id: nextId(),
+          title: `Ihale kaybedildi: ${tender.title}`,
+          note: tender.bondLocked > 0
+            ? `Kazanan ${opponent}. Teminattan ${formatMoney(penalty)} otomatik ceza kesildi.`
+            : `Kazanan ${opponent}. Asgari teminat yatirilmadigi icin teklif gecersiz sayildi.`,
+          delta: refund,
+        })
+
+        return {
+          ...tender,
+          status: 'expired',
+          winner: opponent,
+          penaltyPaid: penalty,
+          bondLocked: 0,
+        }
+      }
+
+      const vehicleHealth = vehicleCondition[vehicle.id] ?? 100
+      const isVehicleFaulted = vehicleFailures[vehicle.id] ?? false
+      const tenderScenarioRisk =
+        tender.mode === 'sea'
+          ? scenario.seaRisk
+          : tender.mode === 'air'
+            ? scenario.airRisk
+            : scenario.landRisk
+      const tenderRisk = clamp(
+        route.baseRisk +
+          modeRiskBase[tender.mode] +
+          tenderScenarioRisk +
+          product.risk +
+          (100 - vehicleHealth) / 260,
+        0.08,
+        0.95,
+      )
+      const dispatchCost = Math.round(tender.playerBid * 0.075 + route.distanceKm * 3.4)
+      const projectedGain = Math.round(tender.playerBid * (0.12 + deterministicNoise(`${tender.id}-gain`) * 0.08))
+      const etaSec = clamp(
+        Math.round(
+          route.distanceKm / speedByMode[tender.mode] +
+            tender.tons / 40 +
+            tenderScenarioRisk * 52 +
+            (100 - vehicleHealth) * 0.48,
+        ),
+        30,
+        300,
+      )
+      const hasCapacity = activeJobs.length + awardedTransitJobs.length < 12
+      const hasLiquidity = cash + cashDelta >= dispatchCost
+
+      if (!hasCapacity || !hasLiquidity || isVehicleFaulted) {
+        const penalty = Math.round(tender.bondLocked * 0.45)
+        const refund = Math.max(0, tender.bondLocked - penalty)
+
+        cashDelta += refund
+        escrowDelta -= tender.bondLocked
+        repAdjustment -= 3
+        pointsAdjustment -= 10
+
+        logEntries.push({
+          id: nextId(),
+          title: `Ihale otomatik ceza: ${tender.title}`,
+          note: isVehicleFaulted
+            ? `${vehicle.name} arizali oldugu icin sevkiyat acilamadi. Teminat kesintisi uygulandi.`
+            : 'Likidite veya filo kapasitesi yetersiz oldugu icin kontrat bozuldu ve ceza kesildi.',
+          delta: refund,
+        })
+
+        return {
+          ...tender,
+          status: 'failed',
+          winner: 'Kontrat iptali',
+          penaltyPaid: penalty,
+          bondLocked: 0,
+        }
+      }
+
+      cashDelta -= dispatchCost
+      pointsAdjustment += 18
+      repAdjustment += 2
+      awardedTransitJobs.push({
+        id: `job-${nextId()}`,
+        title: tender.title,
+        source: 'tender',
+        routeLabel: `${cityById[route.from]?.name ?? route.from} -> ${cityById[route.to]?.name ?? route.to}`,
+        etaAt: targetTime + etaSec,
+        deadlineAt: targetTime + tender.deliveryWindowSec,
+        riskScore: tenderRisk,
+        projectedProfit: projectedGain,
+        grossRevenue: tender.playerBid,
+        fuelCost: route.distanceKm * vehicle.fuelPerKm * scenario.fuelMultiplier,
+        maintenanceCost: vehicle.maintenanceCost * 0.44,
+        bookingCost: dispatchCost,
+        incidentLabel: scenario.incidentLabel,
+        vehicleName: vehicle.name,
+        vehicleId: vehicle.id,
+        collateralLocked: tender.bondLocked,
+        penaltyRate: tender.latePenaltyRate,
+      })
+      wearQueue.push({
+        vehicleId: vehicle.id,
+        wearAmount: clamp(route.distanceKm / 620 + tender.tons / 140 + tenderScenarioRisk * 18, 6, 22),
+        riskContext: tenderScenarioRisk,
+        source: `tender-${tender.id}`,
+      })
+
+      logEntries.push({
+        id: nextId(),
+        title: `Ihale kazanildi: ${tender.title}`,
+        note: `Kontrat acildi, teslimat suresi ${formatCountdown(etaSec)}. Teminat teslimat sonuna kadar kilitli.`,
+        delta: -dispatchCost,
+      })
+
+      return {
+        ...tender,
+        status: 'awarded',
+        winner: 'Senin Koop Birligin',
+        awardedAt: targetTime,
+        bondLocked: 0,
+      }
+    })
+
+    const completionEntries = dueJobs.map((job) => {
       const incidentRoll = deterministicNoise(`${job.id}-${targetTime}-incident`)
       const incident = incidentRoll < job.riskScore
       const variance = 0.9 + deterministicNoise(`${job.id}-${targetTime}-variance`) * 0.2
+      const isLate = typeof job.deadlineAt === 'number' && job.etaAt > job.deadlineAt
       let delta = Math.round(job.projectedProfit * variance + job.bookingCost)
-      let note = `${job.routeLabel} teslimati hedef surede tamamlandi.`
+      let note = `${job.routeLabel} teslimati tamamlandi.`
 
       if (incident) {
         const emergencyLoss =
-          job.grossRevenue * (0.22 + deterministicNoise(`${job.id}-${targetTime}-loss`) * 0.25)
-        delta = -Math.round(Math.abs(job.fuelCost + job.maintenanceCost * 0.55 + emergencyLoss))
-        note = `${job.routeLabel} seferinde ${job.incidentLabel} nedeniyle zarar yazildi.`
+          job.grossRevenue * (0.2 + deterministicNoise(`${job.id}-${targetTime}-loss`) * 0.27)
+        delta = -Math.round(Math.abs(job.fuelCost + job.maintenanceCost * 0.6 + emergencyLoss))
+        note = `${job.routeLabel} seferinde ${job.incidentLabel} nedeniyle ciddi hasar olustu.`
+      }
+
+      if (isLate) {
+        const lateFine = Math.round(job.bookingCost * 0.18 + job.grossRevenue * 0.02)
+        delta -= lateFine
+        note += ` Teslimat penceresi asildi, ${formatMoney(lateFine)} otomatik ceza uygulandi.`
+        repAdjustment -= 4
+        pointsAdjustment -= 7
+      }
+
+      if (job.collateralLocked > 0) {
+        const collateralPenalty = isLate ? Math.round(job.collateralLocked * (job.penaltyRate ?? 0.3)) : 0
+        const collateralRefund = Math.max(0, job.collateralLocked - collateralPenalty)
+        cashDelta += collateralRefund
+        escrowDelta -= job.collateralLocked
+
+        note += isLate
+          ? ` Teminat iadesinde ${formatMoney(collateralPenalty)} kesildi.`
+          : ' Teminat iadesi eksiksiz yapildi.'
       }
 
       cashDelta += delta
@@ -891,6 +1317,19 @@ function App() {
       repAdjustment += incident ? -5 : 3
       pointsAdjustment += incident ? -10 : 18
       portfolioFactor *= 1 + (incident ? -0.008 : 0.011)
+
+      if (incident && deterministicNoise(`${job.id}-post-fault`) < 0.52) {
+        const faultVehicle = job.vehicleId
+        if (faultVehicle && !(vehicleFailures[faultVehicle] ?? false)) {
+          const failureCost = Math.round((vehicleById[faultVehicle]?.maintenanceCost ?? 30000) * 0.11)
+          cashDelta -= failureCost
+          setVehicleFailures((prev) => ({
+            ...prev,
+            [faultVehicle]: true,
+          }))
+          note += ` ${vehicleById[faultVehicle]?.name ?? 'Arac'} bakim arizasina dustu.`
+        }
+      }
 
       return {
         id: nextId(),
@@ -900,15 +1339,33 @@ function App() {
       }
     })
 
-    setCash((prev) => Math.round(prev + cashDelta))
-    setDebt((prev) =>
-      Math.max(0, Math.round(prev * (1 + (loanRate * dueJobs.length) / 5100) + debtAdjustment)),
-    )
-    setReputation((prev) => clamp(prev + repAdjustment, 0, 100))
-    setLeaguePoints((prev) => Math.max(0, Math.round(prev + pointsAdjustment)))
-    setPortfolio((prev) => Math.max(0, Math.round(prev * portfolioFactor)))
-    setInTransitJobs((prev) => prev.filter((job) => job.etaAt > targetTime))
-    setOperations((prev) => [...completions, ...prev].slice(0, 14))
+    setTenderBoard(resolvedTenders)
+    setInTransitJobs([...awardedTransitJobs, ...activeJobs].slice(0, 12))
+    if (cashDelta !== 0) {
+      setCash((prev) => Math.max(0, Math.round(prev + cashDelta)))
+    }
+    if (escrowDelta !== 0) {
+      setEscrowedBond((prev) => Math.max(0, Math.round(prev + escrowDelta)))
+    }
+    if (debtAdjustment !== 0) {
+      setDebt((prev) => Math.max(0, Math.round(prev * (1 + (loanRate * dueJobs.length) / 5100) + debtAdjustment)))
+    }
+    if (repAdjustment !== 0) {
+      setReputation((prev) => clamp(prev + repAdjustment, 0, 100))
+    }
+    if (pointsAdjustment !== 0) {
+      setLeaguePoints((prev) => Math.max(0, Math.round(prev + pointsAdjustment)))
+    }
+    if (portfolioFactor !== 1) {
+      setPortfolio((prev) => Math.max(0, Math.round(prev * portfolioFactor)))
+    }
+    if (logEntries.length > 0 || completionEntries.length > 0) {
+      setOperations((prev) => [...logEntries, ...completionEntries, ...prev].slice(0, 18))
+    }
+
+    wearQueue.forEach((wearItem) => {
+      wearVehicle(wearItem.vehicleId, wearItem.wearAmount, wearItem.riskContext, wearItem.source)
+    })
   }
 
   const queueTransitJob = ({
@@ -924,6 +1381,10 @@ function App() {
     maintenanceCost,
     incidentLabel,
     vehicleName,
+    vehicleId,
+    deadlineAt = null,
+    collateralLocked = 0,
+    penaltyRate = 0.3,
   }) => {
     if (cash < dispatchCost) {
       setOperations((prev) =>
@@ -935,7 +1396,22 @@ function App() {
             delta: 0,
           },
           ...prev,
-        ].slice(0, 14),
+        ].slice(0, 18),
+      )
+      return false
+    }
+
+    if (vehicleFailures[vehicleId] ?? false) {
+      setOperations((prev) =>
+        [
+          {
+            id: nextId(),
+            title: `${vehicleName} arizasi`,
+            note: 'Arac arizali oldugu icin sefere cikis engellendi. Once bakim yapmalisin.',
+            delta: 0,
+          },
+          ...prev,
+        ].slice(0, 18),
       )
       return false
     }
@@ -951,6 +1427,7 @@ function App() {
           source,
           routeLabel,
           etaAt: gameTime + etaSec,
+          deadlineAt,
           riskScore,
           projectedProfit,
           grossRevenue,
@@ -959,6 +1436,9 @@ function App() {
           bookingCost: dispatchCost,
           incidentLabel,
           vehicleName,
+          vehicleId,
+          collateralLocked,
+          penaltyRate,
         },
         ...prev,
       ].slice(0, 12),
@@ -972,17 +1452,10 @@ function App() {
           delta: -dispatchCost,
         },
         ...prev,
-      ].slice(0, 14),
+      ].slice(0, 18),
     )
 
     return true
-  }
-
-  const wearVehicle = (vehicleId, wearAmount) => {
-    setVehicleCondition((prev) => ({
-      ...prev,
-      [vehicleId]: clamp((prev[vehicleId] ?? 100) - wearAmount, 8, 100),
-    }))
   }
 
   const runOperation = () => {
@@ -992,17 +1465,19 @@ function App() {
       return
     }
 
-    if (selectedVehicleHealth < 22) {
+    if (selectedVehicleHealth < 22 || selectedVehicleFault) {
       setOperations((prev) =>
         [
           {
             id: nextId(),
             title: `${selectedVehicle.name} bakim bekliyor`,
-            note: 'Arac sagligi kritik seviyede. Sefer oncesi bakim yapmalisin.',
+            note: selectedVehicleFault
+              ? 'Arac arizali. Sefer oncesi bakim merkezinde ariza gidermelisin.'
+              : 'Arac sagligi kritik seviyede. Sefer oncesi bakim yapmalisin.',
             delta: 0,
           },
           ...prev,
-        ].slice(0, 14),
+      ].slice(0, 18),
       )
       return
     }
@@ -1017,7 +1492,7 @@ function App() {
             delta: 0,
           },
           ...prev,
-        ].slice(0, 14),
+      ].slice(0, 18),
       )
       return
     }
@@ -1035,6 +1510,7 @@ function App() {
       maintenanceCost,
       incidentLabel: scenario.incidentLabel,
       vehicleName: selectedVehicle.name,
+      vehicleId: selectedVehicle.id,
     })
 
     if (!started) {
@@ -1046,11 +1522,11 @@ function App() {
       5,
       24,
     )
-    wearVehicle(selectedVehicle.id, wearAmount)
+    wearVehicle(selectedVehicle.id, wearAmount, scenarioRiskByMode, 'manual-route')
     setLeaguePoints((prev) => Math.round(prev + 4))
   }
 
-  const bidTender = (tenderId) => {
+  const placeTenderBid = (tenderId) => {
     settleDueEvents(gameTime)
 
     const tender = tenderBoard.find((item) => item.id === tenderId)
@@ -1069,24 +1545,14 @@ function App() {
             delta: 0,
           },
           ...prev,
-        ].slice(0, 14),
+        ].slice(0, 18),
       )
       return
     }
 
-    const tenderRoute = routeCatalog.find((route) => route.id === tender.routeId)
     const tenderVehicle = fleetByMode[tender.mode][0]
-    const tenderProduct =
-      productCatalog.find((product) => product.id === tender.productId) ?? productCatalog[0]
-
-    if (!tenderRoute || !tenderVehicle) {
-      return
-    }
-
-    const from = cityById[tenderRoute.from]
-    const to = cityById[tenderRoute.to]
     const vehicleHealth = vehicleCondition[tenderVehicle.id] ?? 100
-    if (vehicleHealth < 22) {
+    if (vehicleHealth < 22 || (vehicleFailures[tenderVehicle.id] ?? false)) {
       setOperations((prev) =>
         [
           {
@@ -1096,95 +1562,73 @@ function App() {
             delta: 0,
           },
           ...prev,
-        ].slice(0, 14),
+        ].slice(0, 18),
       )
       return
     }
 
-    const tenderScenarioRisk =
-      tender.mode === 'sea'
-        ? scenario.seaRisk
-        : tender.mode === 'air'
-          ? scenario.airRisk
-          : scenario.landRisk
-    const tenderRisk = clamp(
-      tenderRoute.baseRisk +
-        modeRiskBase[tender.mode] +
-        tenderScenarioRisk +
-        tenderProduct.risk +
-        (100 - vehicleHealth) / 260,
-      0.08,
-      0.95,
-    )
-    const tenderBookingCost = Math.round(tender.minBid * 0.08 + tenderRoute.distanceKm * 3.4)
-    const tenderFuelCost = tenderRoute.distanceKm * tenderVehicle.fuelPerKm * scenario.fuelMultiplier
-    const tenderMaintenanceCost = tenderVehicle.maintenanceCost * 0.44
-    const tenderProjectedProfit = Math.round(
-      tender.minBid * (0.14 + deterministicNoise(`${tender.id}-${gameTime}-margin`) * 0.08),
-    )
-    const tenderEta = clamp(
-      Math.round(
-        tender.deliveryWindowSec +
-          (100 - vehicleHealth) * 0.5 +
-          tenderScenarioRisk * 38 +
-          tenderRoute.distanceKm / 980,
-      ),
-      30,
-      280,
-    )
-
-    const started = queueTransitJob({
-      title: tender.title,
-      routeLabel: `${from.name} -> ${to.name}`,
-      source: 'tender',
-      bookingCost: tenderBookingCost,
-      etaSec: tenderEta,
-      riskScore: tenderRisk,
-      projectedProfit: tenderProjectedProfit,
-      grossRevenue: tender.minBid,
-      fuelCost: tenderFuelCost,
-      maintenanceCost: tenderMaintenanceCost,
-      incidentLabel: scenario.incidentLabel,
-      vehicleName: tenderVehicle.name,
-    })
-
-    if (!started) {
+    const minCollateral = Math.round(tender.minBid * tender.minCollateralRate)
+    const additionalBond = Math.max(0, minCollateral - (tender.bondLocked ?? 0))
+    if (cash < additionalBond) {
+      setOperations((prev) =>
+        [
+          {
+            id: nextId(),
+            title: `${tender.title} teklif reddedildi`,
+            note: `Asgari teminat icin ${formatMoney(additionalBond)} daha gerekli.`,
+            delta: 0,
+          },
+          ...prev,
+        ].slice(0, 18),
+      )
       return
     }
 
+    const raiseAmount = Math.round(
+      tender.minBid *
+        (tender.bidStepRate + deterministicNoise(`${tender.id}-${gameTime}-player-raise`) * 0.015),
+    )
+    const nextPlayerBid = tender.playerBid + raiseAmount
+
+    setCash((prev) => prev - additionalBond)
+    setEscrowedBond((prev) => prev + additionalBond)
     setTenderBoard((prev) =>
       prev.map((item) =>
         item.id === tenderId
           ? {
               ...item,
-              status: 'awarded',
-              winner: 'Senin Koop Birligin',
-              awardedAt: gameTime,
+              bondLocked: minCollateral,
+              hasPlayerBid: true,
+              playerBid: nextPlayerBid,
+              leader: nextPlayerBid >= item.rivalBid ? 'player' : 'rival',
             }
           : item,
       ),
     )
-
-    const tenderWear = clamp(
-      tenderRoute.distanceKm / 620 + tender.tons / 140 + tenderScenarioRisk * 18,
-      6,
-      22,
+    setOperations((prev) =>
+      [
+        {
+          id: nextId(),
+          title: `Canli teklif: ${tender.title}`,
+          note: `Teklifin ${formatMoney(nextPlayerBid)} seviyesine cikarildi. Asgari teminat kilitlendi.`,
+          delta: -additionalBond,
+        },
+        ...prev,
+      ].slice(0, 18),
     )
-    wearVehicle(tenderVehicle.id, tenderWear)
-    setLeaguePoints((prev) => Math.round(prev + 22))
-    setReputation((prev) => clamp(prev + 2, 0, 100))
   }
 
   const performMaintenance = (targetVehicleId) => {
     settleDueEvents(gameTime)
 
-    const vehicle = allVehicles.find((entry) => entry.id === targetVehicleId)
+    const vehicle = vehicleById[targetVehicleId]
     if (!vehicle) {
       return
     }
 
     const currentHealth = vehicleCondition[targetVehicleId] ?? 100
-    if (currentHealth > 96) {
+    const hasFailure = vehicleFailures[targetVehicleId] ?? false
+    if (currentHealth > 96 && !hasFailure) {
       return
     }
 
@@ -1199,7 +1643,7 @@ function App() {
             delta: 0,
           },
           ...prev,
-        ].slice(0, 14),
+        ].slice(0, 18),
       )
       return
     }
@@ -1211,16 +1655,22 @@ function App() {
       ...prev,
       [targetVehicleId]: clamp((prev[targetVehicleId] ?? 100) + recovery, 0, 100),
     }))
+    setVehicleFailures((prev) => ({
+      ...prev,
+      [targetVehicleId]: false,
+    }))
     setOperations((prev) =>
       [
         {
           id: nextId(),
           title: `${vehicle.name} bakimi tamamlandi`,
-          note: `Arac sagligi +${recovery.toFixed(0)} puan yenilendi.`,
+          note: hasFailure
+            ? `Ariza giderildi ve arac sagligi +${recovery.toFixed(0)} puan yenilendi.`
+            : `Arac sagligi +${recovery.toFixed(0)} puan yenilendi.`,
           delta: -serviceCost,
         },
         ...prev,
-      ].slice(0, 14),
+      ].slice(0, 18),
     )
   }
 
@@ -1233,6 +1683,10 @@ function App() {
     setGameTime(nextTime)
     settleDueEvents(nextTime)
   }
+
+  useEffect(() => {
+    settleDueEvents(gameTime)
+  }, [gameTime])
 
   const takeLoan = () => {
     settleDueEvents(gameTime)
@@ -1251,7 +1705,7 @@ function App() {
           delta: principal,
         },
         ...prev,
-      ].slice(0, 14),
+      ].slice(0, 18),
     )
   }
 
@@ -1275,7 +1729,7 @@ function App() {
           delta: -payment,
         },
         ...prev,
-      ].slice(0, 14),
+      ].slice(0, 18),
     )
   }
 
@@ -1317,8 +1771,16 @@ function App() {
             <strong>{tenderRows.filter((tender) => tender.isOpen).length}</strong>
           </article>
           <article className="stat-card">
-            <span>Arac Sagligi</span>
+            <span>Kilitli Teminat</span>
+            <strong>{formatMoney(escrowedBond)}</strong>
+          </article>
+          <article className="stat-card">
+            <span>Secili Arac Sagligi</span>
             <strong>{selectedVehicleHealth.toFixed(0)} / 100</strong>
+          </article>
+          <article className="stat-card">
+            <span>Bakim Arizasi</span>
+            <strong>{faultedVehicleCount} arac</strong>
           </article>
         </section>
 
@@ -1362,13 +1824,26 @@ function App() {
                 <h2>Dunya Haritasi ve Ticaret Merkezleri</h2>
                 <div className="map-stage">
                   <img src={worldMapImg} alt="Dunya ticaret haritasi" />
+                  <svg className="map-links" viewBox="0 0 100 100" aria-hidden="true">
+                    {mapRoutes.map((route) => (
+                      <line
+                        key={`${route.id}-link`}
+                        x1={route.fromCity.mapX}
+                        y1={route.fromCity.mapY}
+                        x2={route.toCity.mapX}
+                        y2={route.toCity.mapY}
+                      />
+                    ))}
+                  </svg>
                   {cityCatalog.map((city) => (
                     <div
                       key={city.id}
                       className="map-marker"
                       style={{ left: `${city.mapX}%`, top: `${city.mapY}%` }}
                     >
-                      <span>{city.name}</span>
+                      <span>
+                        {city.name}, {city.country}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -1376,6 +1851,7 @@ function App() {
                   {cityCatalog.map((city) => (
                     <article key={city.id} className="city-card">
                       <h3>{city.name}</h3>
+                      <p>{city.country}</p>
                       <p>{city.port}</p>
                       <p>Vergi: {formatPercent(city.taxRate)}</p>
                       <p>Risk: {formatPercent(city.risk)}</p>
@@ -1483,6 +1959,7 @@ function App() {
                   <div className="vehicle-visual-meta">
                     <p>{selectedVehicle.name}</p>
                     <strong>Bakim: {selectedVehicleHealth.toFixed(0)} / 100</strong>
+                    {selectedVehicleFault && <em className="warning-text">Ariza aktif: Bakim gerekli</em>}
                     <span>Tahmini teslimat: {formatCountdown(deliveryEtaSec)}</span>
                   </div>
                 </div>
@@ -1596,8 +2073,8 @@ function App() {
               <section className="panel">
                 <h2>Sure Sinirli Ihale Masasi</h2>
                 <p className="muted">
-                  Ihalede sure bitmeden teklif ver. Kazandigin kontratlar dogrudan transit kuyruguna
-                  duser, aninda teslim olmaz.
+                  Asgari teminat yatirmadan teklif gecerli olmaz. Rakipler canli artirim yapar;
+                  sure doldugunda en yuksek teklif kontrati alir.
                 </p>
                 <div className="auction-list">
                   {tenderRows.map((tender) => {
@@ -1614,6 +2091,11 @@ function App() {
                             {tender.tons} ton
                           </p>
                           <p>Min. bedel: {formatMoney(tender.minBid)}</p>
+                          <p>Asgari teminat: {formatMoney(tender.minCollateral)}</p>
+                          <p>
+                            Oyuncu teklifi: {formatMoney(tender.playerBid)} | Rakip teklifi:{' '}
+                            {formatMoney(tender.rivalBid)}
+                          </p>
                         </div>
                         <div className="auction-meta">
                           <span
@@ -1628,19 +2110,24 @@ function App() {
                             {tender.isOpen ? formatCountdown(tender.timeLeftSec) : 'Kapandi'}
                           </span>
                           <span>Teslimat penceresi: {formatCountdown(tender.deliveryWindowSec)}</span>
+                          <span className={tender.playerLeading ? 'leader player' : 'leader rival'}>
+                            Lider: {tender.playerLeading ? 'Senin Koop' : 'Rakip oyuncu'}
+                          </span>
                           <button
                             type="button"
                             className="ghost-btn compact-btn"
                             disabled={!tender.isOpen}
-                            onClick={() => bidTender(tender.id)}
+                            onClick={() => placeTenderBid(tender.id)}
                           >
-                            Teklif Ver
+                            Teklif Arttir
                           </button>
                           <p className="muted mini">
                             {tender.status === 'awarded'
-                              ? `Kazanan: ${tender.winner}`
+                              ? `Kazanan: ${tender.winner} | Ceza: ${formatMoney(tender.penaltyPaid)}`
+                              : tender.status === 'failed'
+                                ? `Kontrat iptali | Ceza: ${formatMoney(tender.penaltyPaid)}`
                               : tender.status === 'expired'
-                                ? `Kapanis: ${tender.winner}`
+                                ? `Kapanis: ${tender.winner} | Ceza: ${formatMoney(tender.penaltyPaid)}`
                                 : 'Durum: Acik'}
                           </p>
                         </div>
@@ -1658,6 +2145,7 @@ function App() {
                       <div>
                         <strong>{vehicle.name}</strong>
                         <p>Bakim maliyeti: {formatMoney(vehicle.serviceCost)}</p>
+                        {vehicle.hasFailure && <p className="fault-text">Durum: Ariza aktif</p>}
                       </div>
                       <div className="maintenance-actions">
                         <div className="health-track">
@@ -1669,7 +2157,7 @@ function App() {
                           className="ghost-btn compact-btn"
                           onClick={() => performMaintenance(vehicle.id)}
                         >
-                          Bakim Yap
+                          {vehicle.hasFailure ? 'Arizayi Gider' : 'Bakim Yap'}
                         </button>
                       </div>
                     </article>

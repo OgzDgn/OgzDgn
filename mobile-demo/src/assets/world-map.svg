@@ -1,39 +1,67 @@
 <svg width="900" height="420" viewBox="0 0 900 420" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0F233A" />
-      <stop offset="100%" stop-color="#132D4C" />
+    <linearGradient id="ocean" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0C1F34" />
+      <stop offset="100%" stop-color="#143357" />
     </linearGradient>
-    <linearGradient id="land" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#4BA8FF" />
-      <stop offset="100%" stop-color="#3D7BFF" />
+    <linearGradient id="landMass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#61BCFF" />
+      <stop offset="100%" stop-color="#3A7BFF" />
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8FE7FF" />
+      <stop offset="100%" stop-color="#70B5FF" />
     </linearGradient>
   </defs>
-  <rect x="0" y="0" width="900" height="420" rx="24" fill="url(#bg)" />
-  <g opacity="0.92" fill="url(#land)">
-    <path d="M86 147L124 126L172 135L196 165L177 198L132 217L97 196L70 171L86 147Z" />
-    <path d="M184 215L211 197L244 213L236 244L203 252L179 235L184 215Z" />
-    <path d="M277 120L321 96L387 110L423 137L419 168L376 194L326 191L280 165L277 120Z" />
-    <path d="M433 173L467 155L501 166L521 196L501 224L466 232L437 212L433 173Z" />
-    <path d="M445 236L478 223L505 239L496 274L464 286L434 272L445 236Z" />
-    <path d="M544 112L586 94L645 106L675 134L655 164L607 176L558 161L544 112Z" />
-    <path d="M646 186L672 170L707 178L726 206L709 234L676 244L648 230L646 186Z" />
-    <path d="M727 154L756 136L788 146L810 173L803 205L769 219L738 209L721 179L727 154Z" />
-    <path d="M728 241L756 226L788 232L804 258L795 288L764 301L736 290L721 265L728 241Z" />
+  <rect x="0" y="0" width="900" height="420" rx="24" fill="url(#ocean)" />
+  <g opacity="0.15" stroke="#84D1FF" stroke-width="1">
+    <path d="M50 95H850" />
+    <path d="M50 150H850" />
+    <path d="M50 205H850" />
+    <path d="M50 260H850" />
+    <path d="M50 315H850" />
+    <path d="M110 40V378" />
+    <path d="M220 40V378" />
+    <path d="M330 40V378" />
+    <path d="M440 40V378" />
+    <path d="M550 40V378" />
+    <path d="M660 40V378" />
+    <path d="M770 40V378" />
   </g>
-  <g fill="#8ED3FF" opacity="0.75">
-    <circle cx="185" cy="165" r="6" />
-    <circle cx="576" cy="170" r="6" />
-    <circle cx="625" cy="150" r="6" />
-    <circle cx="651" cy="204" r="6" />
-    <circle cx="331" cy="162" r="6" />
-    <circle cx="753" cy="168" r="6" />
+  <g fill="url(#landMass)" opacity="0.94">
+    <path d="M78 143L112 122L165 126L207 149L208 176L176 197L120 208L79 190L60 167L78 143Z" />
+    <path d="M189 214L223 204L252 214L266 239L249 266L219 275L190 258L180 235L189 214Z" />
+    <path d="M263 126L309 98L380 105L427 129L436 165L398 190L344 198L287 184L261 156L263 126Z" />
+    <path d="M418 179L464 163L507 176L526 204L508 234L466 247L428 233L412 206L418 179Z" />
+    <path d="M450 243L481 231L507 248L498 275L470 287L444 276L438 256L450 243Z" />
+    <path d="M531 119L584 100L646 106L691 132L691 165L646 183L582 179L543 160L531 119Z" />
+    <path d="M648 188L683 176L718 188L732 214L717 241L682 252L651 243L639 218L648 188Z" />
+    <path d="M716 148L751 132L792 138L820 159L824 189L801 212L764 220L728 206L710 180L716 148Z" />
+    <path d="M719 237L751 225L789 231L812 248L814 278L789 300L756 305L726 291L713 265L719 237Z" />
   </g>
-  <g stroke="#7ED5FF" stroke-width="2" stroke-dasharray="5 5" opacity="0.65">
-    <path d="M185 165C255 130 300 134 331 162" />
-    <path d="M331 162C427 151 515 155 576 170" />
-    <path d="M576 170C597 166 612 160 625 150" />
-    <path d="M625 150C670 147 708 151 753 168" />
-    <path d="M625 150C641 168 647 188 651 204" />
+  <g fill="url(#glow)" opacity="0.78">
+    <circle cx="170" cy="172" r="4.8" />
+    <circle cx="99" cy="180" r="4.2" />
+    <circle cx="279" cy="264" r="4.3" />
+    <circle cx="453" cy="235" r="4.2" />
+    <circle cx="518" cy="221" r="4.2" />
+    <circle cx="538" cy="199" r="4.2" />
+    <circle cx="561" cy="167" r="4.4" />
+    <circle cx="577" cy="162" r="4.3" />
+    <circle cx="601" cy="152" r="4.2" />
+    <circle cx="651" cy="161" r="4.2" />
+    <circle cx="676" cy="165" r="4.2" />
+    <circle cx="758" cy="158" r="4.5" />
+  </g>
+  <g stroke="#88DFFF" stroke-width="2.2" stroke-linecap="round" stroke-dasharray="5 6" opacity="0.62">
+    <path d="M95 180C140 176 145 172 170 172" />
+    <path d="M170 172C258 162 412 171 561 167" />
+    <path d="M561 167C566 165 571 163 577 162" />
+    <path d="M577 162C586 157 593 154 601 152" />
+    <path d="M577 162C623 156 636 158 651 161" />
+    <path d="M651 161C682 157 716 154 758 158" />
+    <path d="M518 221C534 212 542 205 561 167" />
+    <path d="M518 221C488 223 472 229 453 235" />
+    <path d="M170 172C198 204 233 229 279 264" />
   </g>
 </svg>
