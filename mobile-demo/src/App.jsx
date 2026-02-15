@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import worldMapImg from './assets/world-map.svg'
 import landVehicleImg from './assets/vehicle-land.svg'
@@ -527,6 +527,17 @@ const formatGameClock = (seconds) => {
   return `${hours}:${mins}:${secs}`
 }
 
+const deterministicNoise = (seedValue) => {
+  const seed = String(seedValue)
+  let hash = 0
+
+  for (let i = 0; i < seed.length; i += 1) {
+    hash = (hash * 31 + seed.charCodeAt(i)) % 100000
+  }
+
+  return (Math.sin(hash) + 1) / 2
+}
+
 const buildInitialTenderBoard = () =>
   tenderCatalog.map((tender, index) => ({
     ...tender,
@@ -582,6 +593,12 @@ function App() {
       delta: 88000,
     },
   ])
+  const idCounter = useRef(1000)
+
+  const nextId = () => {
+    idCounter.current += 1
+    return idCounter.current
+  }
 
   useEffect(() => {
     const timerId = window.setInterval(() => {
@@ -757,8 +774,8 @@ function App() {
         return {
           ...profile,
           currentRank: '-',
-          rating: Math.round(52 + Math.random() * 30),
-          valuation: 850000 + Math.round(Math.random() * 650000),
+          rating: 52 + Math.round(deterministicNoise(profile.id) * 30),
+          valuation: 850000 + Math.round(deterministicNoise(`${profile.id}-valuation`) * 650000),
         }
       }),
     [cash, leagueTable, reputation],
@@ -768,7 +785,7 @@ function App() {
     () =>
       cooperativeProfiles.map((coop, index) => ({
         ...coop,
-        score: 1400 + index * 45 + Math.round(Math.random() * 18),
+        score: 1400 + index * 45 + Math.round(deterministicNoise(`${coop.id}-score`) * 18),
       })),
     [],
   )
@@ -834,7 +851,7 @@ function App() {
       setOperations((prev) =>
         [
           ...expiredTenders.map((tender, index) => ({
-            id: Date.now() + index,
+            id: nextId(),
             title: `Ihale kacirildi: ${tender.title}`,
             note: `Sure doldu, ${leagueOpponents[index % leagueOpponents.length].name} kontrati aldi.`,
             delta: 0,
@@ -855,14 +872,16 @@ function App() {
     let pointsAdjustment = 0
     let portfolioFactor = 1
 
-    const completions = dueJobs.map((job, index) => {
-      const incident = Math.random() < job.riskScore
-      const variance = 0.9 + Math.random() * 0.2
+    const completions = dueJobs.map((job) => {
+      const incidentRoll = deterministicNoise(`${job.id}-${targetTime}-incident`)
+      const incident = incidentRoll < job.riskScore
+      const variance = 0.9 + deterministicNoise(`${job.id}-${targetTime}-variance`) * 0.2
       let delta = Math.round(job.projectedProfit * variance + job.bookingCost)
       let note = `${job.routeLabel} teslimati hedef surede tamamlandi.`
 
       if (incident) {
-        const emergencyLoss = job.grossRevenue * (0.22 + Math.random() * 0.25)
+        const emergencyLoss =
+          job.grossRevenue * (0.22 + deterministicNoise(`${job.id}-${targetTime}-loss`) * 0.25)
         delta = -Math.round(Math.abs(job.fuelCost + job.maintenanceCost * 0.55 + emergencyLoss))
         note = `${job.routeLabel} seferinde ${job.incidentLabel} nedeniyle zarar yazildi.`
       }
@@ -874,7 +893,7 @@ function App() {
       portfolioFactor *= 1 + (incident ? -0.008 : 0.011)
 
       return {
-        id: Date.now() + 100 + index,
+        id: nextId(),
         title: `Teslimat Tamamlandi: ${job.title}`,
         note,
         delta,
@@ -910,7 +929,7 @@ function App() {
       setOperations((prev) =>
         [
           {
-            id: Date.now(),
+            id: nextId(),
             title: `${title} baslatilamadi`,
             note: 'Nakit yetersiz. Is emri acmak icin daha fazla likidite gerekli.',
             delta: 0,
@@ -921,7 +940,7 @@ function App() {
       return false
     }
 
-    const jobId = `${Date.now()}-${Math.round(Math.random() * 10000)}`
+    const jobId = `job-${nextId()}`
 
     setCash((prev) => Math.round(prev - dispatchCost))
     setInTransitJobs((prev) =>
@@ -947,7 +966,7 @@ function App() {
     setOperations((prev) =>
       [
         {
-          id: Date.now(),
+          id: nextId(),
           title: `${title} yola cikti`,
           note: `${vehicleName} ile cikis yapildi. Tahmini teslimat: ${formatCountdown(etaSec)}.`,
           delta: -dispatchCost,
@@ -977,7 +996,7 @@ function App() {
       setOperations((prev) =>
         [
           {
-            id: Date.now(),
+            id: nextId(),
             title: `${selectedVehicle.name} bakim bekliyor`,
             note: 'Arac sagligi kritik seviyede. Sefer oncesi bakim yapmalisin.',
             delta: 0,
@@ -992,7 +1011,7 @@ function App() {
       setOperations((prev) =>
         [
           {
-            id: Date.now(),
+            id: nextId(),
             title: 'Transit limiti dolu',
             note: 'Yeni sefer acmadan once bazi teslimatlari sonuclandir.',
             delta: 0,
@@ -1044,7 +1063,7 @@ function App() {
       setOperations((prev) =>
         [
           {
-            id: Date.now(),
+            id: nextId(),
             title: `Ihale kapandi: ${tender.title}`,
             note: 'Bu ihalenin teklif suresi doldu veya baska bir ekip tarafindan alindi.',
             delta: 0,
@@ -1071,7 +1090,7 @@ function App() {
       setOperations((prev) =>
         [
           {
-            id: Date.now(),
+            id: nextId(),
             title: `${tender.title} teklif reddedildi`,
             note: `${tenderVehicle.name} bakimda oldugu icin ihaleye girilemedi.`,
             delta: 0,
@@ -1100,7 +1119,9 @@ function App() {
     const tenderBookingCost = Math.round(tender.minBid * 0.08 + tenderRoute.distanceKm * 3.4)
     const tenderFuelCost = tenderRoute.distanceKm * tenderVehicle.fuelPerKm * scenario.fuelMultiplier
     const tenderMaintenanceCost = tenderVehicle.maintenanceCost * 0.44
-    const tenderProjectedProfit = Math.round(tender.minBid * (0.14 + Math.random() * 0.08))
+    const tenderProjectedProfit = Math.round(
+      tender.minBid * (0.14 + deterministicNoise(`${tender.id}-${gameTime}-margin`) * 0.08),
+    )
     const tenderEta = clamp(
       Math.round(
         tender.deliveryWindowSec +
@@ -1172,7 +1193,7 @@ function App() {
       setOperations((prev) =>
         [
           {
-            id: Date.now(),
+            id: nextId(),
             title: `${vehicle.name} bakimi ertelendi`,
             note: 'Servis masrafini karsilamak icin nakit yetersiz.',
             delta: 0,
@@ -1193,7 +1214,7 @@ function App() {
     setOperations((prev) =>
       [
         {
-          id: Date.now(),
+          id: nextId(),
           title: `${vehicle.name} bakimi tamamlandi`,
           note: `Arac sagligi +${recovery.toFixed(0)} puan yenilendi.`,
           delta: -serviceCost,
@@ -1224,7 +1245,7 @@ function App() {
     setOperations((prev) =>
       [
         {
-          id: Date.now(),
+          id: nextId(),
           title: 'Banka Kredisi',
           note: `Likidite icin ${formatMoney(principal)} kredi alindi.`,
           delta: principal,
@@ -1248,7 +1269,7 @@ function App() {
     setOperations((prev) =>
       [
         {
-          id: Date.now(),
+          id: nextId(),
           title: 'Borclanma Azaltildi',
           note: `Kredi anaparasina ${formatMoney(payment)} odeme gecildi.`,
           delta: -payment,
