@@ -1,10 +1,17 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import './App.css'
+import worldMapImg from './assets/world-map.svg'
+import landVehicleImg from './assets/vehicle-land.svg'
+import seaVehicleImg from './assets/vehicle-sea.svg'
+import airVehicleImg from './assets/vehicle-air.svg'
+import playerAvatarImg from './assets/profile-player.svg'
+import coopAvatarImg from './assets/profile-coop.svg'
 
 const tabs = [
   { id: 'dashboard', label: 'Komuta' },
   { id: 'trade', label: 'Ticaret' },
   { id: 'coop', label: 'Koop' },
+  { id: 'profiles', label: 'Profiller' },
   { id: 'finance', label: 'Finans' },
   { id: 'league', label: 'Lig' },
 ]
@@ -18,6 +25,8 @@ const cityCatalog = [
     risk: 0.14,
     demand: ['Elektronik', 'Tibbi Malzeme', 'Luks Arac'],
     policy: 'Denetim yogun',
+    mapX: 20,
+    mapY: 40,
   },
   {
     id: 'shanghai',
@@ -27,6 +36,8 @@ const cityCatalog = [
     risk: 0.2,
     demand: ['Petrol', 'Nadir Madenler', 'Elektronik'],
     policy: 'Ihracat odakli',
+    mapX: 78,
+    mapY: 43,
   },
   {
     id: 'istanbul',
@@ -36,6 +47,8 @@ const cityCatalog = [
     risk: 0.24,
     demand: ['Tahil', 'Tibbi Malzeme', 'Elektronik'],
     policy: 'Kopru pazar',
+    mapX: 60,
+    mapY: 40,
   },
   {
     id: 'dubai',
@@ -45,6 +58,8 @@ const cityCatalog = [
     risk: 0.18,
     demand: ['Luks Arac', 'Petrol', 'Silah'],
     policy: 'Serbest bolge',
+    mapX: 66,
+    mapY: 52,
   },
   {
     id: 'hamburg',
@@ -54,6 +69,8 @@ const cityCatalog = [
     risk: 0.12,
     demand: ['Tahil', 'Elektronik', 'Tibbi Malzeme'],
     policy: 'Yesil lojistik',
+    mapX: 58,
+    mapY: 32,
   },
   {
     id: 'tokyo',
@@ -63,6 +80,8 @@ const cityCatalog = [
     risk: 0.15,
     demand: ['Nadir Madenler', 'Elektronik', 'Luks Arac'],
     policy: 'Yuksek standart',
+    mapX: 85,
+    mapY: 39,
   },
 ]
 
@@ -365,6 +384,97 @@ const baseStocks = [
   { name: 'MedSupply Trust', base: 61 },
 ]
 
+const playerProfiles = [
+  {
+    id: 'you',
+    name: 'NOVA Freight Holdings',
+    role: 'Oyuncu CEO',
+    focus: 'Kara + deniz hibrit zincir',
+    riskStyle: 'Dengeli',
+  },
+  {
+    id: 'p2',
+    name: 'Mina Yildiz',
+    role: 'Atlas Meridian CFO',
+    focus: 'Agresif fiyat kirma',
+    riskStyle: 'Yuksek',
+  },
+  {
+    id: 'p3',
+    name: 'Kenji Sato',
+    role: 'Sino Harbor Captain',
+    focus: 'Liman rotasyon optimizasyonu',
+    riskStyle: 'Dengeli',
+  },
+  {
+    id: 'p4',
+    name: 'Lara Demir',
+    role: 'Baltic Crown COO',
+    focus: 'Ihale sure baskisi',
+    riskStyle: 'Dusuk',
+  },
+]
+
+const cooperativeProfiles = [
+  {
+    id: 'c1',
+    name: 'Mavi Hat Koop Birligi',
+    region: 'EMEA',
+    specialty: 'Konteyner + demiryolu terminali',
+    members: 24,
+  },
+  {
+    id: 'c2',
+    name: 'TransPacific Unity',
+    region: 'APAC',
+    specialty: 'LNG ve yuksek hacimli deniz hattlari',
+    members: 31,
+  },
+  {
+    id: 'c3',
+    name: 'Atlas Frontier Guild',
+    region: 'Americas',
+    specialty: 'Hizli hava teslimat agi',
+    members: 17,
+  },
+]
+
+const tenderCatalog = [
+  {
+    id: 'tender-1',
+    title: 'Dubai Petrol Tedarik Ihalesi',
+    routeId: 'dubai-istanbul',
+    mode: 'sea',
+    productId: 'petrol',
+    tons: 520,
+    minBid: 1750000,
+    durationSec: 95,
+    deliveryWindowSec: 100,
+  },
+  {
+    id: 'tender-2',
+    title: 'Hamburg Medikal Acil Kontrat',
+    routeId: 'istanbul-hamburg',
+    mode: 'land',
+    productId: 'medical',
+    tons: 180,
+    minBid: 860000,
+    durationSec: 120,
+    deliveryWindowSec: 75,
+  },
+  {
+    id: 'tender-3',
+    title: 'Tokyo Elektronik Hizli Hat',
+    routeId: 'tokyo-shanghai',
+    mode: 'air',
+    productId: 'electronics',
+    tons: 95,
+    minBid: 1120000,
+    durationSec: 140,
+    deliveryWindowSec: 62,
+  },
+]
+
 const modeRiskBase = {
   land: 0.2,
   sea: 0.26,
@@ -377,6 +487,20 @@ const modeLabels = {
   air: 'Hava Ticareti',
 }
 
+const speedByMode = {
+  land: 145,
+  sea: 205,
+  air: 320,
+}
+
+const vehicleVisualByMode = {
+  land: landVehicleImg,
+  sea: seaVehicleImg,
+  air: airVehicleImg,
+}
+
+const allVehicles = Object.values(fleetByMode).flat()
+
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max)
 
 const formatMoney = (value) =>
@@ -387,6 +511,30 @@ const formatMoney = (value) =>
   }).format(value)
 
 const formatPercent = (value) => `%${(value * 100).toFixed(1)}`
+
+const formatCountdown = (seconds) => {
+  const safeValue = Math.max(0, Math.floor(seconds))
+  const mins = String(Math.floor(safeValue / 60)).padStart(2, '0')
+  const secs = String(safeValue % 60).padStart(2, '0')
+  return `${mins}:${secs}`
+}
+
+const formatGameClock = (seconds) => {
+  const safeValue = Math.max(0, Math.floor(seconds))
+  const hours = String(Math.floor(safeValue / 3600)).padStart(2, '0')
+  const mins = String(Math.floor((safeValue % 3600) / 60)).padStart(2, '0')
+  const secs = String(safeValue % 60).padStart(2, '0')
+  return `${hours}:${mins}:${secs}`
+}
+
+const buildInitialTenderBoard = () =>
+  tenderCatalog.map((tender, index) => ({
+    ...tender,
+    status: 'open',
+    winner: null,
+    awardedAt: null,
+    closeAt: tender.durationSec + index * 28,
+  }))
 
 function App() {
   const cityById = useMemo(
@@ -408,26 +556,42 @@ function App() {
   const [reputation, setReputation] = useState(58)
   const [leaguePoints, setLeaguePoints] = useState(1310)
   const [portfolio, setPortfolio] = useState(780000)
+  const [gameTime, setGameTime] = useState(0)
+  const [tenderBoard, setTenderBoard] = useState(() => buildInitialTenderBoard())
+  const [inTransitJobs, setInTransitJobs] = useState([])
+  const [vehicleCondition, setVehicleCondition] = useState(() =>
+    Object.fromEntries(allVehicles.map((vehicle) => [vehicle.id, 100])),
+  )
   const [operations, setOperations] = useState([
     {
       id: 1,
       title: 'Istanbul -> Hamburg',
-      note: 'Demiryolu teslimati planlandigi gibi tamamlandi.',
+      note: 'Demiryolu teslimati transit sonrasinda basariyla kapandi.',
       delta: 163000,
     },
     {
       id: 2,
       title: 'Dubai -> Istanbul',
-      note: 'Sinir vergisi nedeniyle marj daraldi.',
+      note: 'Bakim gecikmesi nedeniyle sefer suresi uzadi.',
       delta: -42000,
     },
     {
       id: 3,
       title: 'Shanghai -> Istanbul',
-      note: 'Liman yogunlugu ekstra depolama maliyeti cikardi.',
+      note: 'Ihale kontrati sure dolmadan kazanildi.',
       delta: 88000,
     },
   ])
+
+  useEffect(() => {
+    const timerId = window.setInterval(() => {
+      setGameTime((prev) => prev + 1)
+    }, 1000)
+
+    return () => {
+      window.clearInterval(timerId)
+    }
+  }, [])
 
   const scenario = useMemo(
     () => scenarioCatalog.find((item) => item.id === scenarioId) ?? scenarioCatalog[0],
@@ -473,6 +637,9 @@ function App() {
     destination && destination.demand.includes(selectedProduct.name) ? 1.18 : 0.92
   const illegalPenalty = selectedProduct.illegal ? 0.16 : 0
   const distanceKm = selectedRoute?.distanceKm ?? 0
+  const selectedVehicleHealth = vehicleCondition[selectedVehicle.id] ?? 100
+  const maintenanceRiskPenalty = clamp((100 - selectedVehicleHealth) / 260, 0, 0.32)
+  const maintenanceBacklogCost = selectedVehicle.maintenanceCost * (1 - selectedVehicleHealth / 100) * 0.2
 
   const grossRevenue =
     selectedProduct.basePrice * cargoTons * demandMultiplier * selectedVehicle.priceMultiplier
@@ -496,7 +663,8 @@ function App() {
     selectedProduct.risk +
     illegalPenalty +
     scenarioRiskByMode -
-    selectedVehicle.riskMitigation
+    selectedVehicle.riskMitigation +
+    maintenanceRiskPenalty
 
   if (insuranceEnabled) {
     riskScore -= 0.07
@@ -513,11 +681,23 @@ function App() {
     fuelCost +
     laborCost +
     maintenanceCost +
+    maintenanceBacklogCost +
     storageCost +
     insuranceCost +
     taxCost +
     expectedIncidentLoss
   const projectedProfit = grossRevenue - totalCost
+  const bookingCost = Math.round((fuelCost + laborCost + storageCost * 0.4) * 0.28)
+  const deliveryEtaSec = clamp(
+    Math.round(
+      distanceKm / speedByMode[mode] +
+        cargoTons / 26 +
+        scenarioRiskByMode * 65 +
+        (100 - selectedVehicleHealth) * 0.45,
+    ),
+    20,
+    240,
+  )
   const bankruptcyRisk = clamp(
     (debt / Math.max(cash, 1)) * 30 +
       inflation * 60 +
@@ -562,49 +742,480 @@ function App() {
       .map((entry, index) => ({ ...entry, rank: index + 1 }))
   }, [leaguePoints, reputation])
 
-  const runOperation = () => {
-    if (!selectedRoute || !origin || !destination) {
+  const profileCards = useMemo(
+    () =>
+      playerProfiles.map((profile) => {
+        if (profile.id === 'you') {
+          return {
+            ...profile,
+            currentRank: leagueTable.find((entry) => entry.name === 'Senin Koop Birligin')?.rank ?? '-',
+            rating: reputation,
+            valuation: cash,
+          }
+        }
+
+        return {
+          ...profile,
+          currentRank: '-',
+          rating: Math.round(52 + Math.random() * 30),
+          valuation: 850000 + Math.round(Math.random() * 650000),
+        }
+      }),
+    [cash, leagueTable, reputation],
+  )
+
+  const cooperativeCards = useMemo(
+    () =>
+      cooperativeProfiles.map((coop, index) => ({
+        ...coop,
+        score: 1400 + index * 45 + Math.round(Math.random() * 18),
+      })),
+    [],
+  )
+
+  const tenderRows = useMemo(
+    () =>
+      tenderBoard.map((tender) => ({
+        ...tender,
+        timeLeftSec: Math.max(0, tender.closeAt - gameTime),
+        isOpen: tender.status === 'open' && tender.closeAt > gameTime,
+      })),
+    [tenderBoard, gameTime],
+  )
+
+  const transitRows = useMemo(
+    () =>
+      [...inTransitJobs]
+        .map((job) => ({
+          ...job,
+          timeLeftSec: Math.max(0, job.etaAt - gameTime),
+        }))
+        .sort((a, b) => a.timeLeftSec - b.timeLeftSec),
+    [inTransitJobs, gameTime],
+  )
+
+  const fleetRows = useMemo(
+    () =>
+      allVehicles.map((vehicle) => {
+        const health = vehicleCondition[vehicle.id] ?? 100
+        const serviceCost = Math.round(
+          vehicle.maintenanceCost * (0.22 + (1 - health / 100) * 0.62),
+        )
+
+        return {
+          ...vehicle,
+          health,
+          serviceCost,
+        }
+      }),
+    [vehicleCondition],
+  )
+
+  const settleDueEvents = (targetTime = gameTime) => {
+    const expiredTenders = tenderBoard.filter(
+      (tender) => tender.status === 'open' && tender.closeAt <= targetTime,
+    )
+
+    if (expiredTenders.length > 0) {
+      setTenderBoard((prev) =>
+        prev.map((tender, index) => {
+          if (tender.status === 'open' && tender.closeAt <= targetTime) {
+            return {
+              ...tender,
+              status: 'expired',
+              winner: leagueOpponents[index % leagueOpponents.length].name,
+            }
+          }
+
+          return tender
+        }),
+      )
+
+      setOperations((prev) =>
+        [
+          ...expiredTenders.map((tender, index) => ({
+            id: Date.now() + index,
+            title: `Ihale kacirildi: ${tender.title}`,
+            note: `Sure doldu, ${leagueOpponents[index % leagueOpponents.length].name} kontrati aldi.`,
+            delta: 0,
+          })),
+          ...prev,
+        ].slice(0, 14),
+      )
+    }
+
+    const dueJobs = inTransitJobs.filter((job) => job.etaAt <= targetTime)
+    if (dueJobs.length === 0) {
       return
     }
 
-    const incident = Math.random() < riskScore
-    const variance = 0.9 + Math.random() * 0.25
-    let deltaCash = projectedProfit * variance
-    let note = `${origin.name} -> ${destination.name} hattinda teslimat sorunsuz.`
+    let cashDelta = 0
+    let debtAdjustment = 0
+    let repAdjustment = 0
+    let pointsAdjustment = 0
+    let portfolioFactor = 1
 
-    if (incident) {
-      const emergencyLoss = grossRevenue * (0.25 + Math.random() * 0.3)
-      deltaCash = -Math.abs(fuelCost + maintenanceCost * 0.8 + emergencyLoss)
-      note = `${origin.name} -> ${destination.name} hattinda ${scenario.incidentLabel} yasandi.`
+    const completions = dueJobs.map((job, index) => {
+      const incident = Math.random() < job.riskScore
+      const variance = 0.9 + Math.random() * 0.2
+      let delta = Math.round(job.projectedProfit * variance + job.bookingCost)
+      let note = `${job.routeLabel} teslimati hedef surede tamamlandi.`
+
+      if (incident) {
+        const emergencyLoss = job.grossRevenue * (0.22 + Math.random() * 0.25)
+        delta = -Math.round(Math.abs(job.fuelCost + job.maintenanceCost * 0.55 + emergencyLoss))
+        note = `${job.routeLabel} seferinde ${job.incidentLabel} nedeniyle zarar yazildi.`
+      }
+
+      cashDelta += delta
+      debtAdjustment += incident ? 9500 : -5000
+      repAdjustment += incident ? -5 : 3
+      pointsAdjustment += incident ? -10 : 18
+      portfolioFactor *= 1 + (incident ? -0.008 : 0.011)
+
+      return {
+        id: Date.now() + 100 + index,
+        title: `Teslimat Tamamlandi: ${job.title}`,
+        note,
+        delta,
+      }
+    })
+
+    setCash((prev) => Math.round(prev + cashDelta))
+    setDebt((prev) =>
+      Math.max(0, Math.round(prev * (1 + (loanRate * dueJobs.length) / 5100) + debtAdjustment)),
+    )
+    setReputation((prev) => clamp(prev + repAdjustment, 0, 100))
+    setLeaguePoints((prev) => Math.max(0, Math.round(prev + pointsAdjustment)))
+    setPortfolio((prev) => Math.max(0, Math.round(prev * portfolioFactor)))
+    setInTransitJobs((prev) => prev.filter((job) => job.etaAt > targetTime))
+    setOperations((prev) => [...completions, ...prev].slice(0, 14))
+  }
+
+  const queueTransitJob = ({
+    title,
+    routeLabel,
+    source,
+    bookingCost: dispatchCost,
+    etaSec,
+    riskScore,
+    projectedProfit,
+    grossRevenue,
+    fuelCost,
+    maintenanceCost,
+    incidentLabel,
+    vehicleName,
+  }) => {
+    if (cash < dispatchCost) {
+      setOperations((prev) =>
+        [
+          {
+            id: Date.now(),
+            title: `${title} baslatilamadi`,
+            note: 'Nakit yetersiz. Is emri acmak icin daha fazla likidite gerekli.',
+            delta: 0,
+          },
+          ...prev,
+        ].slice(0, 14),
+      )
+      return false
     }
 
-    const roundedDelta = Math.round(deltaCash)
+    const jobId = `${Date.now()}-${Math.round(Math.random() * 10000)}`
 
-    setCash((prev) => Math.round(prev + roundedDelta))
-    setDebt((prev) =>
-      Math.max(0, Math.round(prev * (1 + loanRate / 3650) + (incident ? 9000 : -7000))),
-    )
-    setReputation((prev) => clamp(prev + (incident ? -5 : 3), 0, 100))
-    setLeaguePoints((prev) =>
-      Math.round(prev + (incident ? -12 : 20 + Math.max(0, projectedProfit / 50000))),
-    )
-    setPortfolio((prev) =>
-      Math.max(0, Math.round(prev * (1 + (incident ? -0.01 : 0.012) - scenario.fxVolatility * 0.004))),
+    setCash((prev) => Math.round(prev - dispatchCost))
+    setInTransitJobs((prev) =>
+      [
+        {
+          id: jobId,
+          title,
+          source,
+          routeLabel,
+          etaAt: gameTime + etaSec,
+          riskScore,
+          projectedProfit,
+          grossRevenue,
+          fuelCost,
+          maintenanceCost,
+          bookingCost: dispatchCost,
+          incidentLabel,
+          vehicleName,
+        },
+        ...prev,
+      ].slice(0, 12),
     )
     setOperations((prev) =>
       [
         {
           id: Date.now(),
-          title: `${origin.name} -> ${destination.name}`,
-          note,
-          delta: roundedDelta,
+          title: `${title} yola cikti`,
+          note: `${vehicleName} ile cikis yapildi. Tahmini teslimat: ${formatCountdown(etaSec)}.`,
+          delta: -dispatchCost,
         },
         ...prev,
-      ].slice(0, 8),
+      ].slice(0, 14),
+    )
+
+    return true
+  }
+
+  const wearVehicle = (vehicleId, wearAmount) => {
+    setVehicleCondition((prev) => ({
+      ...prev,
+      [vehicleId]: clamp((prev[vehicleId] ?? 100) - wearAmount, 8, 100),
+    }))
+  }
+
+  const runOperation = () => {
+    settleDueEvents(gameTime)
+
+    if (!selectedRoute || !origin || !destination) {
+      return
+    }
+
+    if (selectedVehicleHealth < 22) {
+      setOperations((prev) =>
+        [
+          {
+            id: Date.now(),
+            title: `${selectedVehicle.name} bakim bekliyor`,
+            note: 'Arac sagligi kritik seviyede. Sefer oncesi bakim yapmalisin.',
+            delta: 0,
+          },
+          ...prev,
+        ].slice(0, 14),
+      )
+      return
+    }
+
+    if (inTransitJobs.length >= 12) {
+      setOperations((prev) =>
+        [
+          {
+            id: Date.now(),
+            title: 'Transit limiti dolu',
+            note: 'Yeni sefer acmadan once bazi teslimatlari sonuclandir.',
+            delta: 0,
+          },
+          ...prev,
+        ].slice(0, 14),
+      )
+      return
+    }
+
+    const started = queueTransitJob({
+      title: `${origin.name} -> ${destination.name}`,
+      routeLabel: `${origin.name} -> ${destination.name}`,
+      source: 'manual',
+      bookingCost,
+      etaSec: deliveryEtaSec,
+      riskScore,
+      projectedProfit,
+      grossRevenue,
+      fuelCost,
+      maintenanceCost,
+      incidentLabel: scenario.incidentLabel,
+      vehicleName: selectedVehicle.name,
+    })
+
+    if (!started) {
+      return
+    }
+
+    const wearAmount = clamp(
+      distanceKm / 500 + (cargoTons / selectedVehicle.capacity) * 11 + scenarioRiskByMode * 14,
+      5,
+      24,
+    )
+    wearVehicle(selectedVehicle.id, wearAmount)
+    setLeaguePoints((prev) => Math.round(prev + 4))
+  }
+
+  const bidTender = (tenderId) => {
+    settleDueEvents(gameTime)
+
+    const tender = tenderBoard.find((item) => item.id === tenderId)
+    if (!tender) {
+      return
+    }
+
+    const isTenderOpen = tender.status === 'open' && tender.closeAt > gameTime
+    if (!isTenderOpen) {
+      setOperations((prev) =>
+        [
+          {
+            id: Date.now(),
+            title: `Ihale kapandi: ${tender.title}`,
+            note: 'Bu ihalenin teklif suresi doldu veya baska bir ekip tarafindan alindi.',
+            delta: 0,
+          },
+          ...prev,
+        ].slice(0, 14),
+      )
+      return
+    }
+
+    const tenderRoute = routeCatalog.find((route) => route.id === tender.routeId)
+    const tenderVehicle = fleetByMode[tender.mode][0]
+    const tenderProduct =
+      productCatalog.find((product) => product.id === tender.productId) ?? productCatalog[0]
+
+    if (!tenderRoute || !tenderVehicle) {
+      return
+    }
+
+    const from = cityById[tenderRoute.from]
+    const to = cityById[tenderRoute.to]
+    const vehicleHealth = vehicleCondition[tenderVehicle.id] ?? 100
+    if (vehicleHealth < 22) {
+      setOperations((prev) =>
+        [
+          {
+            id: Date.now(),
+            title: `${tender.title} teklif reddedildi`,
+            note: `${tenderVehicle.name} bakimda oldugu icin ihaleye girilemedi.`,
+            delta: 0,
+          },
+          ...prev,
+        ].slice(0, 14),
+      )
+      return
+    }
+
+    const tenderScenarioRisk =
+      tender.mode === 'sea'
+        ? scenario.seaRisk
+        : tender.mode === 'air'
+          ? scenario.airRisk
+          : scenario.landRisk
+    const tenderRisk = clamp(
+      tenderRoute.baseRisk +
+        modeRiskBase[tender.mode] +
+        tenderScenarioRisk +
+        tenderProduct.risk +
+        (100 - vehicleHealth) / 260,
+      0.08,
+      0.95,
+    )
+    const tenderBookingCost = Math.round(tender.minBid * 0.08 + tenderRoute.distanceKm * 3.4)
+    const tenderFuelCost = tenderRoute.distanceKm * tenderVehicle.fuelPerKm * scenario.fuelMultiplier
+    const tenderMaintenanceCost = tenderVehicle.maintenanceCost * 0.44
+    const tenderProjectedProfit = Math.round(tender.minBid * (0.14 + Math.random() * 0.08))
+    const tenderEta = clamp(
+      Math.round(
+        tender.deliveryWindowSec +
+          (100 - vehicleHealth) * 0.5 +
+          tenderScenarioRisk * 38 +
+          tenderRoute.distanceKm / 980,
+      ),
+      30,
+      280,
+    )
+
+    const started = queueTransitJob({
+      title: tender.title,
+      routeLabel: `${from.name} -> ${to.name}`,
+      source: 'tender',
+      bookingCost: tenderBookingCost,
+      etaSec: tenderEta,
+      riskScore: tenderRisk,
+      projectedProfit: tenderProjectedProfit,
+      grossRevenue: tender.minBid,
+      fuelCost: tenderFuelCost,
+      maintenanceCost: tenderMaintenanceCost,
+      incidentLabel: scenario.incidentLabel,
+      vehicleName: tenderVehicle.name,
+    })
+
+    if (!started) {
+      return
+    }
+
+    setTenderBoard((prev) =>
+      prev.map((item) =>
+        item.id === tenderId
+          ? {
+              ...item,
+              status: 'awarded',
+              winner: 'Senin Koop Birligin',
+              awardedAt: gameTime,
+            }
+          : item,
+      ),
+    )
+
+    const tenderWear = clamp(
+      tenderRoute.distanceKm / 620 + tender.tons / 140 + tenderScenarioRisk * 18,
+      6,
+      22,
+    )
+    wearVehicle(tenderVehicle.id, tenderWear)
+    setLeaguePoints((prev) => Math.round(prev + 22))
+    setReputation((prev) => clamp(prev + 2, 0, 100))
+  }
+
+  const performMaintenance = (targetVehicleId) => {
+    settleDueEvents(gameTime)
+
+    const vehicle = allVehicles.find((entry) => entry.id === targetVehicleId)
+    if (!vehicle) {
+      return
+    }
+
+    const currentHealth = vehicleCondition[targetVehicleId] ?? 100
+    if (currentHealth > 96) {
+      return
+    }
+
+    const serviceCost = Math.round(vehicle.maintenanceCost * (0.22 + (1 - currentHealth / 100) * 0.62))
+    if (cash < serviceCost) {
+      setOperations((prev) =>
+        [
+          {
+            id: Date.now(),
+            title: `${vehicle.name} bakimi ertelendi`,
+            note: 'Servis masrafini karsilamak icin nakit yetersiz.',
+            delta: 0,
+          },
+          ...prev,
+        ].slice(0, 14),
+      )
+      return
+    }
+
+    const recovery = clamp(Math.round((100 - currentHealth) * 0.82 + 7), 8, 100)
+
+    setCash((prev) => prev - serviceCost)
+    setVehicleCondition((prev) => ({
+      ...prev,
+      [targetVehicleId]: clamp((prev[targetVehicleId] ?? 100) + recovery, 0, 100),
+    }))
+    setOperations((prev) =>
+      [
+        {
+          id: Date.now(),
+          title: `${vehicle.name} bakimi tamamlandi`,
+          note: `Arac sagligi +${recovery.toFixed(0)} puan yenilendi.`,
+          delta: -serviceCost,
+        },
+        ...prev,
+      ].slice(0, 14),
     )
   }
 
+  const syncSimulation = () => {
+    settleDueEvents(gameTime)
+  }
+
+  const advanceSimulation = () => {
+    const nextTime = gameTime + 30
+    setGameTime(nextTime)
+    settleDueEvents(nextTime)
+  }
+
   const takeLoan = () => {
+    settleDueEvents(gameTime)
+
     const principal = 400000
     const debtIncrease = Math.round(principal * (1 + loanRate * 0.22))
 
@@ -619,11 +1230,13 @@ function App() {
           delta: principal,
         },
         ...prev,
-      ].slice(0, 8),
+      ].slice(0, 14),
     )
   }
 
   const payDebt = () => {
+    settleDueEvents(gameTime)
+
     const payment = Math.min(debt, Math.round(cash * 0.35))
 
     if (payment < 50000) {
@@ -641,7 +1254,7 @@ function App() {
           delta: -payment,
         },
         ...prev,
-      ].slice(0, 8),
+      ].slice(0, 14),
     )
   }
 
@@ -655,6 +1268,10 @@ function App() {
             Gercek sehirler, gercek limanlar, kriz sezonlari ve zor ekonomi dengesi
             ile mobil strateji oyunu prototipi.
           </p>
+          <div className="clock-line">
+            <span>Sunucu saati: {formatGameClock(gameTime)}</span>
+            <strong>{inTransitJobs.length} aktif transit</strong>
+          </div>
         </header>
 
         <section className="stats-grid">
@@ -673,6 +1290,14 @@ function App() {
           <article className="stat-card">
             <span>Iflas Riski</span>
             <strong>{bankruptcyRisk.toFixed(1)} / 100</strong>
+          </article>
+          <article className="stat-card">
+            <span>Acik Ihale</span>
+            <strong>{tenderRows.filter((tender) => tender.isOpen).length}</strong>
+          </article>
+          <article className="stat-card">
+            <span>Arac Sagligi</span>
+            <strong>{selectedVehicleHealth.toFixed(0)} / 100</strong>
           </article>
         </section>
 
@@ -714,6 +1339,18 @@ function App() {
 
               <section className="panel">
                 <h2>Dunya Haritasi ve Ticaret Merkezleri</h2>
+                <div className="map-stage">
+                  <img src={worldMapImg} alt="Dunya ticaret haritasi" />
+                  {cityCatalog.map((city) => (
+                    <div
+                      key={city.id}
+                      className="map-marker"
+                      style={{ left: `${city.mapX}%`, top: `${city.mapY}%` }}
+                    >
+                      <span>{city.name}</span>
+                    </div>
+                  ))}
+                </div>
                 <div className="city-grid">
                   {cityCatalog.map((city) => (
                     <article key={city.id} className="city-card">
@@ -752,6 +1389,7 @@ function App() {
                   <li>Kur dalgalanmasi: USD/TRY {usdTry.toFixed(2)}</li>
                   <li>Kredi faizi: {formatPercent(loanRate)}</li>
                   <li>Yatirimci baskisi: {investorPressure.toFixed(1)} / 100</li>
+                  <li>Ihale sureleri akar, teslimatlar ancak transit suresi bitince sonuclanir.</li>
                   <li>Depolama, sigorta, personel ve bakim her turda yansitilir.</li>
                 </ul>
               </section>
@@ -815,6 +1453,19 @@ function App() {
                   </label>
                 </div>
 
+                <div className="vehicle-visual-wrap">
+                  <img
+                    src={vehicleVisualByMode[mode]}
+                    alt={`${modeLabels[mode]} arac goruntusu`}
+                    className="vehicle-visual"
+                  />
+                  <div className="vehicle-visual-meta">
+                    <p>{selectedVehicle.name}</p>
+                    <strong>Bakim: {selectedVehicleHealth.toFixed(0)} / 100</strong>
+                    <span>Tahmini teslimat: {formatCountdown(deliveryEtaSec)}</span>
+                  </div>
+                </div>
+
                 <label className="range-control">
                   Yuk Miktari: <strong>{cargoTons} ton</strong>
                   <input
@@ -869,14 +1520,140 @@ function App() {
                     <span>Risk Skoru</span>
                     <strong>{(riskScore * 100).toFixed(1)} / 100</strong>
                   </article>
+                  <article>
+                    <span>Cikis Teminati</span>
+                    <strong>{formatMoney(bookingCost)}</strong>
+                  </article>
+                  <article>
+                    <span>Teslimat Suresi</span>
+                    <strong>{formatCountdown(deliveryEtaSec)}</strong>
+                  </article>
                 </div>
 
                 <button type="button" className="primary-btn" onClick={runOperation}>
-                  Seferi Baslat
+                  Seferi Baslat (Transit Kuyrugu)
                 </button>
                 <p className="muted">
                   Aktif mod: {modeLabels[mode]} | Sezon: {scenario.name}
                 </p>
+              </section>
+
+              <section className="panel">
+                <div className="panel-title-row">
+                  <h2>Transit Kuyrugu ve Teslimatlar</h2>
+                  <span className="badge">{inTransitJobs.length} aktif</span>
+                </div>
+                <div className="button-row">
+                  <button type="button" className="ghost-btn compact-btn" onClick={syncSimulation}>
+                    Teslimatlari Guncelle
+                  </button>
+                  <button type="button" className="ghost-btn compact-btn" onClick={advanceSimulation}>
+                    Simulasyonu +30 sn
+                  </button>
+                </div>
+                {transitRows.length === 0 && (
+                  <p className="muted">Aktif transit yok. Yeni sefer veya ihale baslatabilirsin.</p>
+                )}
+                <div className="transit-list">
+                  {transitRows.map((job) => (
+                    <article key={job.id} className="transit-item">
+                      <div>
+                        <strong>{job.title}</strong>
+                        <p>
+                          {job.routeLabel} | {job.vehicleName} | Kaynak:{' '}
+                          {job.source === 'tender' ? 'Ihale' : 'Serbest ticaret'}
+                        </p>
+                      </div>
+                      <span className={job.timeLeftSec <= 20 ? 'countdown urgent' : 'countdown'}>
+                        {formatCountdown(job.timeLeftSec)}
+                      </span>
+                    </article>
+                  ))}
+                </div>
+              </section>
+
+              <section className="panel">
+                <h2>Sure Sinirli Ihale Masasi</h2>
+                <p className="muted">
+                  Ihalede sure bitmeden teklif ver. Kazandigin kontratlar dogrudan transit kuyruguna
+                  duser, aninda teslim olmaz.
+                </p>
+                <div className="auction-list">
+                  {tenderRows.map((tender) => {
+                    const route = routeCatalog.find((entry) => entry.id === tender.routeId)
+                    const from = route ? cityById[route.from] : null
+                    const to = route ? cityById[route.to] : null
+
+                    return (
+                      <article key={tender.id} className="auction-item">
+                        <div>
+                          <strong>{tender.title}</strong>
+                          <p>
+                            {from?.name} {' -> '} {to?.name} | {modeLabels[tender.mode]} |{' '}
+                            {tender.tons} ton
+                          </p>
+                          <p>Min. bedel: {formatMoney(tender.minBid)}</p>
+                        </div>
+                        <div className="auction-meta">
+                          <span
+                            className={
+                              tender.isOpen
+                                ? tender.timeLeftSec < 20
+                                  ? 'countdown urgent'
+                                  : 'countdown'
+                                : 'countdown closed'
+                            }
+                          >
+                            {tender.isOpen ? formatCountdown(tender.timeLeftSec) : 'Kapandi'}
+                          </span>
+                          <span>Teslimat penceresi: {formatCountdown(tender.deliveryWindowSec)}</span>
+                          <button
+                            type="button"
+                            className="ghost-btn compact-btn"
+                            disabled={!tender.isOpen}
+                            onClick={() => bidTender(tender.id)}
+                          >
+                            Teklif Ver
+                          </button>
+                          <p className="muted mini">
+                            {tender.status === 'awarded'
+                              ? `Kazanan: ${tender.winner}`
+                              : tender.status === 'expired'
+                                ? `Kapanis: ${tender.winner}`
+                                : 'Durum: Acik'}
+                          </p>
+                        </div>
+                      </article>
+                    )
+                  })}
+                </div>
+              </section>
+
+              <section className="panel">
+                <h2>Arac Bakim Merkezi</h2>
+                <div className="maintenance-list">
+                  {fleetRows.map((vehicle) => (
+                    <article key={vehicle.id} className="maintenance-item">
+                      <div>
+                        <strong>{vehicle.name}</strong>
+                        <p>Bakim maliyeti: {formatMoney(vehicle.serviceCost)}</p>
+                      </div>
+                      <div className="maintenance-actions">
+                        <div className="health-track">
+                          <span style={{ width: `${vehicle.health}%` }} />
+                        </div>
+                        <p>{vehicle.health.toFixed(0)} / 100</p>
+                        <button
+                          type="button"
+                          className="ghost-btn compact-btn"
+                          onClick={() => performMaintenance(vehicle.id)}
+                        >
+                          Bakim Yap
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
               </section>
 
               <section className="panel">
@@ -902,6 +1679,16 @@ function App() {
             <>
               <section className="panel">
                 <h2>Kooperatif Sirketler Birligi</h2>
+                <div className="profile-highlight">
+                  <img src={coopAvatarImg} alt="Koop profil rozeti" />
+                  <div>
+                    <strong>Senin Koop Profili: KureTrade Collective</strong>
+                    <p>
+                      Ortak filo, ortak depo ve ihale havuzu ile cok nokta teslimat zinciri
+                      yonetiliyor.
+                    </p>
+                  </div>
+                </div>
                 <div className="coop-kpis">
                   <article>
                     <span>Ortak Filo Degeri</span>
@@ -944,6 +1731,47 @@ function App() {
                   <li>Buyuk ihalelere katilim icin birlesik teminat havuzu.</li>
                   <li>Uyeler arasi canli varlik transferi ve acil destek fonu.</li>
                 </ul>
+              </section>
+            </>
+          )}
+
+          {activeTab === 'profiles' && (
+            <>
+              <section className="panel">
+                <h2>Oyuncu Profilleri</h2>
+                <div className="profile-grid">
+                  {profileCards.map((profile) => (
+                    <article key={profile.id} className="profile-card">
+                      <img src={playerAvatarImg} alt="Oyuncu profil avatar" />
+                      <div>
+                        <strong>{profile.name}</strong>
+                        <p>{profile.role}</p>
+                        <p>Uzmanlik: {profile.focus}</p>
+                        <p>Risk stili: {profile.riskStyle}</p>
+                        <p>Puan: {profile.rating} | Varlik: {formatMoney(profile.valuation)}</p>
+                        {profile.currentRank !== '-' && <p>Lig sirasi: #{profile.currentRank}</p>}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+
+              <section className="panel">
+                <h2>Koop Profilleri</h2>
+                <div className="profile-grid">
+                  {cooperativeCards.map((coop) => (
+                    <article key={coop.id} className="profile-card">
+                      <img src={coopAvatarImg} alt="Kooperatif profil armalari" />
+                      <div>
+                        <strong>{coop.name}</strong>
+                        <p>Bolge: {coop.region}</p>
+                        <p>Uzmanlik: {coop.specialty}</p>
+                        <p>Uye sayisi: {coop.members}</p>
+                        <p>Rekabet skoru: {coop.score}</p>
+                      </div>
+                    </article>
+                  ))}
+                </div>
               </section>
             </>
           )}
@@ -1033,6 +1861,7 @@ function App() {
                 <h2>Rekabet Sistemi</h2>
                 <ul className="bullet-list">
                   <li>Ihale savaslari ve liman kapasitesi kilitlenmesi.</li>
+                  <li>Ihale sure siniri sebebiyle agresif teklif planlamasi gerekir.</li>
                   <li>Stratejik fiyat kirma ve tekellesme denemeleri.</li>
                   <li>Legal/illegal ekonomik sabotaj girisimleri.</li>
                 </ul>

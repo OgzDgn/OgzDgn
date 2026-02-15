@@ -1,0 +1,26 @@
+<svg width="320" height="180" viewBox="0 0 320 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#173458" />
+      <stop offset="100%" stop-color="#10233B" />
+    </linearGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#55B2FF" />
+      <stop offset="100%" stop-color="#2D7BFF" />
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="320" height="180" rx="18" fill="url(#sky)" />
+  <rect x="20" y="135" width="280" height="8" rx="4" fill="#244D74" />
+  <rect x="40" y="85" width="150" height="44" rx="6" fill="url(#body)" />
+  <rect x="190" y="95" width="52" height="34" rx="5" fill="#47A2F7" />
+  <rect x="199" y="102" width="34" height="17" rx="3" fill="#A5E4FF" />
+  <rect x="58" y="95" width="73" height="24" rx="3" fill="#8BD4FF" opacity="0.45" />
+  <circle cx="74" cy="133" r="14" fill="#0A1523" />
+  <circle cx="74" cy="133" r="7" fill="#6788B4" />
+  <circle cx="172" cy="133" r="14" fill="#0A1523" />
+  <circle cx="172" cy="133" r="7" fill="#6788B4" />
+  <circle cx="228" cy="133" r="14" fill="#0A1523" />
+  <circle cx="228" cy="133" r="7" fill="#6788B4" />
+  <rect x="247" y="109" width="20" height="7" rx="3.5" fill="#FFE28C" />
+  <path d="M247 112H277" stroke="#FFE28C" stroke-width="4" stroke-linecap="round" opacity="0.5" />
+</svg>

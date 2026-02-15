@@ -1,0 +1,26 @@
+<svg width="320" height="180" viewBox="0 0 320 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sea-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#14365A" />
+      <stop offset="100%" stop-color="#0B223A" />
+    </linearGradient>
+    <linearGradient id="ship" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#5DD6FF" />
+      <stop offset="100%" stop-color="#327DF4" />
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="320" height="180" rx="18" fill="url(#sea-bg)" />
+  <rect x="0" y="130" width="320" height="50" fill="#10406B" opacity="0.8" />
+  <path d="M52 120H252L229 141H74L52 120Z" fill="#152E4B" />
+  <rect x="95" y="77" width="103" height="40" rx="5" fill="url(#ship)" />
+  <rect x="108" y="88" width="18" height="16" rx="2" fill="#B3ECFF" />
+  <rect x="132" y="88" width="18" height="16" rx="2" fill="#B3ECFF" />
+  <rect x="156" y="88" width="18" height="16" rx="2" fill="#B3ECFF" />
+  <rect x="202" y="94" width="34" height="23" rx="4" fill="#3C8FEF" />
+  <rect x="215" y="67" width="7" height="25" rx="3.5" fill="#C7ECFF" />
+  <path d="M219 67L240 79H219V67Z" fill="#8FD2FF" />
+  <path d="M42 148C56 144 72 144 86 148" stroke="#79CEFF" stroke-width="4" stroke-linecap="round" />
+  <path d="M96 153C110 149 126 149 140 153" stroke="#79CEFF" stroke-width="4" stroke-linecap="round" />
+  <path d="M154 148C168 144 184 144 198 148" stroke="#79CEFF" stroke-width="4" stroke-linecap="round" />
+  <path d="M212 153C226 149 242 149 256 153" stroke="#79CEFF" stroke-width="4" stroke-linecap="round" />
+</svg>

@@ -1,0 +1,12 @@
+<svg width="140" height="140" viewBox="0 0 140 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="crest" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4DE7C5" />
+      <stop offset="100%" stop-color="#3E8DFF" />
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="140" height="140" rx="28" fill="#0D2138" />
+  <path d="M70 18L108 34V66C108 87 94 106 70 122C46 106 32 87 32 66V34L70 18Z" fill="url(#crest)" />
+  <path d="M49 63L63 76L91 48" stroke="#E9FBFF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M52 30L88 30" stroke="#D2F7FF" stroke-width="4" stroke-linecap="round" opacity="0.6" />
+</svg>
