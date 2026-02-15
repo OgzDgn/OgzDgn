@@ -707,7 +707,9 @@ export default function App() {
             style={styles.routeButton}
           >
             <Text style={styles.routeTitle}>
-              {route.from} -> {route.to} ({route.mode})
+              {route.from}
+              {' -> '}
+              {route.to} ({route.mode})
             </Text>
             <Text style={styles.routeMeta}>
               {route.lane} | {route.distanceKm} km | Risk {toPercent(route.baseRisk)}
@@ -748,7 +750,9 @@ export default function App() {
             style={[styles.optionRow, selectedRoute?.id === route.id && styles.optionRowActive]}
           >
             <Text style={styles.rowTitle}>
-              {route.from} -> {route.to}
+              {route.from}
+              {' -> '}
+              {route.to}
             </Text>
             <Text style={styles.rowMeta}>
               {route.lane} | {route.distanceKm} km
@@ -960,7 +964,9 @@ export default function App() {
             <Text style={styles.rowTitle}>{crisis.key}</Text>
             <Text style={styles.rowMeta}>{crisis.description}</Text>
             <Text style={styles.rowMeta}>
-              Etki -> Yakit {toPercent(crisis.fuelDelta)} | Kara risk +{toPercent(crisis.modeRisk.Kara)} | Deniz risk +{toPercent(
+              Etki
+              {' -> '}
+              Yakit {toPercent(crisis.fuelDelta)} | Kara risk +{toPercent(crisis.modeRisk.Kara)} | Deniz risk +{toPercent(
                 crisis.modeRisk.Deniz,
               )} | Hava risk +{toPercent(crisis.modeRisk.Hava)}
             </Text>
