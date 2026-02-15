@@ -1438,7 +1438,7 @@ function App() {
   }
   useEffect(() => {
     settleDueEventsRef.current = settleDueEvents
-  }, [settleDueEvents])
+  })
 
   useEffect(() => {
     if (!wsConnected) {
