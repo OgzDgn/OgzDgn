@@ -44,6 +44,34 @@ Frontend React + Vite ile hazirlanmistir.
 npm install
 ```
 
+## Gercek Zamanli Arka Uc (Node + WebSocket + SSE)
+
+Bu repo icinde `realtime-server` klasoru bulunur. Canli cok oyunculu lobi ve ihale
+akisi bu sunucuya baglanir.
+
+Backend kurulum:
+
+```bash
+cd ../realtime-server
+npm install
+npm run dev
+```
+
+Varsayilan adres:
+
+```text
+http://localhost:8787
+```
+
+Frontend tarafinda bu adresi su sekillerde kullanabilirsin:
+
+- Lobi panelindeki **Gercek Zamanli Backend URL** alanina yazarak
+- veya `.env` dosyasina:
+
+```bash
+VITE_REALTIME_BACKEND_URL=http://localhost:8787
+```
+
 ## Gelistirme Sunucusu
 
 ```bash

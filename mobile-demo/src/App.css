@@ -476,14 +476,16 @@ input[type='range'] {
 
 .lobby-player-list,
 .chat-list,
-.socket-feed-list {
+.socket-feed-list,
+.live-tender-list {
   display: grid;
   gap: 8px;
 }
 
 .lobby-player-item,
 .chat-item,
-.socket-feed-item {
+.socket-feed-item,
+.live-tender-item {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 11px;
   padding: 8px;
@@ -509,7 +511,8 @@ input[type='range'] {
 .profile-card p,
 .lobby-player-item p,
 .chat-item p,
-.socket-feed-item p {
+.socket-feed-item p,
+.live-tender-item p {
   margin: 0;
   color: #8ea6c8;
   font-size: 0.75rem;
@@ -528,7 +531,8 @@ input[type='range'] {
 .profile-card strong,
 .lobby-player-item strong,
 .chat-item strong,
-.socket-feed-item strong {
+.socket-feed-item strong,
+.live-tender-item strong {
   font-size: 0.86rem;
 }
 
@@ -677,6 +681,16 @@ input[type='range'] {
   grid-template-columns: 1fr auto;
   gap: 8px;
   margin-bottom: 8px;
+}
+
+.lobby-controls input {
+  margin-top: 6px;
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid rgba(126, 153, 203, 0.5);
+  background: rgba(13, 27, 43, 0.95);
+  color: #dce9ff;
+  padding: 9px;
 }
 
 .lobby-chat-input input {

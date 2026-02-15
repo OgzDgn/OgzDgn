@@ -794,6 +794,30 @@ const buildInitialTenderBoard = () =>
     }
   })
 
+const normalizeBackendBase = (rawUrl) => {
+  try {
+    const normalized = new URL(rawUrl)
+    normalized.pathname = ''
+    return normalized.toString().replace(/\/$/, '')
+  } catch {
+    return 'http://localhost:8787'
+  }
+}
+
+const buildWsUrl = (rawUrl) => {
+  const normalized = new URL(normalizeBackendBase(rawUrl))
+  normalized.protocol = normalized.protocol === 'https:' ? 'wss:' : 'ws:'
+  normalized.pathname = '/ws'
+  return normalized.toString()
+}
+
+const buildSseUrl = (rawUrl, region) => {
+  const normalized = new URL(normalizeBackendBase(rawUrl))
+  normalized.pathname = '/events'
+  normalized.searchParams.set('region', region)
+  return normalized.toString()
+}
+
 function App() {
   const cityById = useMemo(
     () => Object.fromEntries(cityCatalog.map((city) => [city.id, city])),
@@ -823,8 +847,14 @@ function App() {
   const [leaguePoints, setLeaguePoints] = useState(1310)
   const [portfolio, setPortfolio] = useState(780000)
   const [escrowedBond, setEscrowedBond] = useState(0)
-  const [wsConnected, setWsConnected] = useState(true)
+  const [backendUrl, setBackendUrl] = useState(
+    import.meta.env.VITE_REALTIME_BACKEND_URL ?? 'http://localhost:8787',
+  )
+  const [wsEnabled, setWsEnabled] = useState(true)
+  const [wsConnected, setWsConnected] = useState(false)
   const [wsLatencyMs, setWsLatencyMs] = useState(42)
+  const [connectionMode, setConnectionMode] = useState('offline')
+  const [realtimeClientId, setRealtimeClientId] = useState('')
   const [socketFeed, setSocketFeed] = useState([
     {
       id: 'ws-1',
@@ -834,6 +864,8 @@ function App() {
     },
   ])
   const [lobbyRegion, setLobbyRegion] = useState(lobbyRegions[0])
+  const [serverRegions, setServerRegions] = useState(lobbyRegions)
+  const [liveTenderBoard, setLiveTenderBoard] = useState([])
   const [lobbyPlayers, setLobbyPlayers] = useState(lobbyRosterSeed)
   const [lobbyChatInput, setLobbyChatInput] = useState('')
   const [lobbyChat, setLobbyChat] = useState([
@@ -875,15 +907,38 @@ function App() {
   ])
   const idCounter = useRef(1000)
   const wsEventCounterRef = useRef(2)
-  const wsTickRef = useRef(0)
-  const lobbyChatCounterRef = useRef(2)
   const gameTimeRef = useRef(0)
+  const lobbyRegionRef = useRef(lobbyRegion)
+  const backendUrlRef = useRef(backendUrl)
+  const realtimeClientIdRef = useRef('')
+  const wsRef = useRef(null)
+  const sseRef = useRef(null)
   const settleDueEventsRef = useRef(null)
+  const applyRealtimeEnvelopeRef = useRef(null)
+  const openSseFallbackRef = useRef(null)
+  const yourCompanyRef = useRef('KureTrade Collective')
 
   const nextId = () => {
     idCounter.current += 1
     return idCounter.current
   }
+
+  useEffect(() => {
+    lobbyRegionRef.current = lobbyRegion
+  }, [lobbyRegion])
+
+  useEffect(() => {
+    backendUrlRef.current = backendUrl
+  }, [backendUrl])
+
+  useEffect(() => {
+    realtimeClientIdRef.current = realtimeClientId
+  }, [realtimeClientId])
+
+  useEffect(() => {
+    yourCompanyRef.current =
+      lobbyPlayers.find((player) => player.isYou)?.company ?? 'KureTrade Collective'
+  }, [lobbyPlayers])
 
   useEffect(() => {
     const timerId = window.setInterval(() => {
@@ -1119,6 +1174,13 @@ function App() {
       })),
     [tenderBoard, gameTime],
   )
+
+  const liveTenderRows = liveTenderBoard
+    .map((tender) => ({
+      ...tender,
+      timeLeftSec: Math.max(0, Math.round((tender.closeAt - Date.now()) / 1000)),
+    }))
+    .sort((a, b) => a.timeLeftSec - b.timeLeftSec)
 
   const transitRows = useMemo(
     () =>
@@ -1440,142 +1502,283 @@ function App() {
     settleDueEventsRef.current = settleDueEvents
   })
 
+  const pushLocalSocketEvent = (type, text, atTime = gameTimeRef.current) => {
+    const eventId = `ws-${wsEventCounterRef.current}`
+    wsEventCounterRef.current += 1
+
+    setSocketFeed((prev) =>
+      [
+        {
+          id: eventId,
+          type,
+          text,
+          at: formatGameClock(atTime),
+        },
+        ...prev,
+      ].slice(0, 24),
+    )
+  }
+
+  const applyRealtimeEnvelope = (envelope) => {
+    if (!envelope || typeof envelope !== 'object') {
+      return
+    }
+
+    const { type, payload } = envelope
+    const activeClientId =
+      typeof payload?.clientId === 'string' && payload.clientId
+        ? payload.clientId
+        : realtimeClientIdRef.current
+    const markSelf = (players) =>
+      players.map((player) => ({
+        ...player,
+        isYou: player.id === activeClientId,
+      }))
+
+    if (type === 'snapshot') {
+      if (Array.isArray(payload?.regions) && payload.regions.length > 0) {
+        setServerRegions(payload.regions)
+      }
+      if (typeof payload?.region === 'string' && payload.region) {
+        setLobbyRegion(payload.region)
+      }
+      if (typeof payload?.clientId === 'string') {
+        realtimeClientIdRef.current = payload.clientId
+        setRealtimeClientId(payload.clientId)
+      }
+      if (typeof payload?.latencyMs === 'number') {
+        setWsLatencyMs(payload.latencyMs)
+      }
+      if (Array.isArray(payload?.players)) {
+        setLobbyPlayers(markSelf(payload.players))
+      }
+      if (Array.isArray(payload?.tenders)) {
+        setLiveTenderBoard(payload.tenders)
+      }
+      if (Array.isArray(payload?.feed)) {
+        setSocketFeed(payload.feed.slice(0, 24))
+      }
+      if (Array.isArray(payload?.chat)) {
+        setLobbyChat(payload.chat.slice(0, 24))
+      }
+      return
+    }
+
+    if (type === 'players' && Array.isArray(payload)) {
+      setLobbyPlayers(markSelf(payload))
+      return
+    }
+
+    if (type === 'tenders' && Array.isArray(payload)) {
+      setLiveTenderBoard(payload)
+      return
+    }
+
+    if (type === 'feed' && Array.isArray(payload)) {
+      setSocketFeed(payload.slice(0, 24))
+      return
+    }
+
+    if (type === 'chat' && Array.isArray(payload)) {
+      setLobbyChat(payload.slice(0, 24))
+      return
+    }
+
+    if (type === 'latency' && typeof payload?.ms === 'number') {
+      setWsLatencyMs(payload.ms)
+      return
+    }
+
+    if (type === 'event' && payload) {
+      setSocketFeed((prev) => [payload, ...prev].slice(0, 24))
+      return
+    }
+
+    if (type === 'error' && typeof payload?.message === 'string') {
+      pushLocalSocketEvent('warning', payload.message)
+    }
+  }
+
+  const closeSseChannel = () => {
+    if (sseRef.current) {
+      sseRef.current.close()
+      sseRef.current = null
+    }
+  }
+
+  const openSseFallback = () => {
+    closeSseChannel()
+
+    try {
+      const sse = new EventSource(buildSseUrl(backendUrlRef.current, lobbyRegionRef.current))
+      sseRef.current = sse
+
+      sse.onopen = () => {
+        setWsConnected(true)
+        setConnectionMode('sse')
+        pushLocalSocketEvent('system', 'SSE yedek kanal aktif.')
+      }
+
+      sse.onmessage = (event) => {
+        try {
+          const parsed = JSON.parse(event.data)
+          applyRealtimeEnvelope(parsed)
+        } catch {
+          pushLocalSocketEvent('warning', 'SSE veri paketi parse edilemedi.')
+        }
+      }
+
+      sse.onerror = () => {
+        setWsConnected(false)
+        setConnectionMode('offline')
+      }
+    } catch {
+      setWsConnected(false)
+      setConnectionMode('offline')
+      pushLocalSocketEvent('warning', 'SSE baglantisi kurulamadigi icin offline moda gecildi.')
+    }
+  }
+
   useEffect(() => {
-    if (!wsConnected) {
+    applyRealtimeEnvelopeRef.current = applyRealtimeEnvelope
+  })
+
+  useEffect(() => {
+    openSseFallbackRef.current = openSseFallback
+  })
+
+  const sendRealtimeAction = (actionType, payload = {}) => {
+    const message = {
+      type: actionType,
+      payload: {
+        ...payload,
+        region: lobbyRegionRef.current,
+        clientId: realtimeClientIdRef.current,
+      },
+    }
+
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(message))
+      return true
+    }
+
+    fetch(`${normalizeBackendBase(backendUrlRef.current)}/api/action`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(message),
+    }).catch(() => {
+      pushLocalSocketEvent('warning', 'Gercek zamanli aksiyon sunucuya gonderilemedi.')
+    })
+
+    return false
+  }
+
+  useEffect(() => {
+    closeSseChannel()
+    if (wsRef.current) {
+      wsRef.current.close()
+      wsRef.current = null
+    }
+
+    if (!wsEnabled) {
+      setWsConnected(false)
+      setConnectionMode('offline')
+      pushLocalSocketEvent('system', 'Canli baglanti manuel olarak kapatildi.')
       return undefined
     }
 
-    const wsIntervalId = window.setInterval(() => {
-      wsTickRef.current += 1
-      const tick = wsTickRef.current
-      const now = gameTimeRef.current
+    let closedByCleanup = false
+    const ws = new WebSocket(buildWsUrl(backendUrl))
+    wsRef.current = ws
 
-      const pushSocketEvent = (type, text, atTime = now) => {
-        const eventId = `ws-${wsEventCounterRef.current}`
-        wsEventCounterRef.current += 1
-
-        setSocketFeed((prev) =>
-          [
-            {
-              id: eventId,
-              type,
-              text,
-              at: formatGameClock(atTime),
-            },
-            ...prev,
-          ].slice(0, 24),
-        )
+    ws.onopen = () => {
+      if (closedByCleanup) {
+        return
       }
 
-      const simulatedLatency = 24 + Math.round(deterministicNoise(`${lobbyRegion}-${tick}-latency`) * 92)
-      setWsLatencyMs(simulatedLatency)
-
-      let raisedTenderTitle = ''
-      let raisedAmount = 0
-      setTenderBoard((prev) => {
-        let updatedAny = false
-        const updated = prev.map((tender) => {
-          if (tender.status !== 'open' || tender.closeAt <= now) {
-            return tender
-          }
-
-          const shouldRaise = deterministicNoise(`${tender.id}-${tick}-ws-trigger`) > 0.63
-          if (!shouldRaise) {
-            return tender
-          }
-
-          const increment = Math.max(
-            5000,
-            Math.round(
-              tender.minBid *
-                (0.004 + deterministicNoise(`${tender.id}-${tick}-ws-increment`) * tender.bidStepRate),
-            ),
-          )
-
-          updatedAny = true
-          if (!raisedTenderTitle) {
-            raisedTenderTitle = tender.title
-            raisedAmount = increment
-          }
-
-          return {
-            ...tender,
-            rivalBid: tender.rivalBid + increment,
-          }
-        })
-
-        return updatedAny ? updated : prev
-      })
-
-      setLobbyPlayers((prev) =>
-        prev.map((player) => {
-          const simulatedPing = 24 + Math.round(deterministicNoise(`${player.id}-${tick}-ping`) * 94)
-
-          if (player.isYou) {
-            return {
-              ...player,
-              pingMs: Math.max(16, Math.round(simulatedLatency * 0.72)),
-            }
-          }
-
-          return {
-            ...player,
-            ready: deterministicNoise(`${player.id}-${tick}-ready`) > 0.42,
-            pingMs: simulatedPing,
-          }
+      setWsConnected(true)
+      setConnectionMode('ws')
+      pushLocalSocketEvent('system', 'WebSocket baglandi, canli cok oyunculu mod aktif.')
+      ws.send(
+        JSON.stringify({
+          type: 'hello',
+          payload: {
+            region: lobbyRegionRef.current,
+            company: yourCompanyRef.current,
+            captain: 'Sen',
+          },
         }),
       )
+    }
 
-      if (raisedTenderTitle) {
-        pushSocketEvent('bid', `${raisedTenderTitle}: rakip teklif +${formatMoney(raisedAmount)}.`)
-      } else if (tick % 2 === 0) {
-        pushSocketEvent('heartbeat', `${lobbyRegion} websocket heartbeat alindi.`)
+    ws.onmessage = (event) => {
+      try {
+        const parsed = JSON.parse(event.data)
+        applyRealtimeEnvelopeRef.current?.(parsed)
+      } catch {
+        pushLocalSocketEvent('warning', 'WebSocket mesaji okunamadi.')
+      }
+    }
+
+    ws.onerror = () => {
+      if (closedByCleanup) {
+        return
       }
 
-      if (tick % 3 === 0) {
-        const botSpeaker = lobbyRosterSeed[1 + (tick % (lobbyRosterSeed.length - 1))]
-        const chatId = `chat-${lobbyChatCounterRef.current}`
-        lobbyChatCounterRef.current += 1
+      pushLocalSocketEvent('warning', 'WebSocket hatasi algilandi. SSE yedek kanal denenecek.')
+    }
 
-        setLobbyChat((prev) =>
-          [
-            {
-              id: chatId,
-              author: botSpeaker.company,
-              text: 'Ihale masasi hizlandi, herkes teminatini hazir tutsun.',
-              at: formatGameClock(now),
-            },
-            ...prev,
-          ].slice(0, 24),
-        )
+    ws.onclose = () => {
+      if (closedByCleanup) {
+        return
       }
-    }, 2500)
+
+      setWsConnected(false)
+      setConnectionMode('offline')
+      openSseFallbackRef.current?.()
+    }
 
     return () => {
-      window.clearInterval(wsIntervalId)
+      closedByCleanup = true
+      ws.close()
     }
-  }, [lobbyRegion, wsConnected])
+  }, [backendUrl, wsEnabled])
 
   const toggleSocketConnection = () => {
-    setWsConnected((prev) => {
-      const next = !prev
-      const eventId = `ws-${wsEventCounterRef.current}`
-      wsEventCounterRef.current += 1
+    setWsEnabled((prev) => !prev)
+  }
 
-      setSocketFeed((feed) =>
-        [
-          {
-            id: eventId,
-            type: 'system',
-            text: next ? 'WebSocket yeniden baglandi.' : 'WebSocket baglantisi gecici olarak kapatildi.',
-            at: formatGameClock(gameTimeRef.current),
-          },
-          ...feed,
-        ].slice(0, 24),
-      )
+  const handleLobbyRegionChange = (nextRegion) => {
+    setLobbyRegion(nextRegion)
+    lobbyRegionRef.current = nextRegion
 
-      return next
-    })
+    const regionMessage = {
+      type: 'set_region',
+      payload: {
+        region: nextRegion,
+        clientId: realtimeClientIdRef.current,
+      },
+    }
+
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify(regionMessage))
+    } else {
+      fetch(`${normalizeBackendBase(backendUrlRef.current)}/api/action`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(regionMessage),
+      }).catch(() => {
+        pushLocalSocketEvent('warning', 'Sunucu bolgesi degistirilemedi.')
+      })
+    }
+
+    if (connectionMode === 'sse') {
+      openSseFallback()
+    }
   }
 
   const toggleReadyState = () => {
@@ -1594,19 +1797,7 @@ function App() {
       }),
     )
 
-    const eventId = `ws-${wsEventCounterRef.current}`
-    wsEventCounterRef.current += 1
-    setSocketFeed((feed) =>
-      [
-        {
-          id: eventId,
-          type: 'lobby',
-          text: nextReady ? 'Senin Koop hazir durumuna gecti.' : 'Senin Koop hazir durumundan cikti.',
-          at: formatGameClock(gameTimeRef.current),
-        },
-        ...feed,
-      ].slice(0, 24),
-    )
+    sendRealtimeAction('set_ready', { ready: nextReady })
   }
 
   const sendLobbyMessage = () => {
@@ -1615,67 +1806,25 @@ function App() {
       return
     }
 
-    const chatId = `chat-${lobbyChatCounterRef.current}`
-    lobbyChatCounterRef.current += 1
-    const eventId = `ws-${wsEventCounterRef.current}`
-    wsEventCounterRef.current += 1
-
-    setLobbyChat((prev) =>
-      [
-        {
-          id: chatId,
-          author: 'Sen',
-          text: trimmedMessage,
-          at: formatGameClock(gameTimeRef.current),
-        },
-        ...prev,
-      ].slice(0, 24),
-    )
-    setSocketFeed((feed) =>
-      [
-        {
-          id: eventId,
-          type: 'chat',
-          text: `Lobi mesaji gonderildi: "${trimmedMessage}"`,
-          at: formatGameClock(gameTimeRef.current),
-        },
-        ...feed,
-      ].slice(0, 24),
-    )
     setLobbyChatInput('')
+    sendRealtimeAction('chat_message', { text: trimmedMessage })
   }
 
   const startLobbyMatchmaking = () => {
     if (!youAreReady) {
-      const eventId = `ws-${wsEventCounterRef.current}`
-      wsEventCounterRef.current += 1
-      setSocketFeed((feed) =>
-        [
-          {
-            id: eventId,
-            type: 'warning',
-            text: 'Eslesme icin once kendi hazir durumunu acmalisin.',
-            at: formatGameClock(gameTimeRef.current),
-          },
-          ...feed,
-        ].slice(0, 24),
-      )
+      pushLocalSocketEvent('warning', 'Eslesme icin once kendi hazir durumunu acmalisin.')
       return
     }
 
-    const eventId = `ws-${wsEventCounterRef.current}`
-    wsEventCounterRef.current += 1
-    setSocketFeed((feed) =>
-      [
-        {
-          id: eventId,
-          type: 'lobby',
-          text: `${lobbyRegion} icin eslesme araniyor. Hazir oyuncu: ${readyPlayerCount}/${lobbyPlayers.length}.`,
-          at: formatGameClock(gameTimeRef.current),
-        },
-        ...feed,
-      ].slice(0, 24),
-    )
+    sendRealtimeAction('matchmaking_request', {
+      region: lobbyRegion,
+      readyCount: readyPlayerCount,
+    })
+  }
+
+  const placeRealtimeBid = (tenderId, currentBid, bidStep) => {
+    const nextBid = currentBid + Math.max(1000, bidStep)
+    sendRealtimeAction('place_bid', { tenderId, amount: nextBid })
   }
 
   const queueTransitJob = ({
@@ -1938,6 +2087,7 @@ function App() {
         ...feed,
       ].slice(0, 24),
     )
+    sendRealtimeAction('place_bid', { tenderId, amount: nextPlayerBid })
   }
 
   const performMaintenance = (targetVehicleId) => {
@@ -2392,12 +2542,12 @@ function App() {
                 <div className="panel-title-row">
                   <h2>WebSocket Ihale Akisi</h2>
                   <span className={wsConnected ? 'socket-status live' : 'socket-status down'}>
-                    {wsConnected ? 'Bagli' : 'Kesik'} | {wsLatencyMs} ms
+                    {wsConnected ? 'Bagli' : 'Kesik'} ({connectionMode.toUpperCase()}) | {wsLatencyMs} ms
                   </span>
                 </div>
                 <div className="button-row">
                   <button type="button" className="ghost-btn compact-btn" onClick={toggleSocketConnection}>
-                    {wsConnected ? 'Socketi Durdur' : 'Socketi Bagla'}
+                    {wsEnabled ? 'Socketi Durdur' : 'Socketi Bagla'}
                   </button>
                   <button type="button" className="ghost-btn compact-btn" onClick={startLobbyMatchmaking}>
                     Eslesme Sinyali Gonder
@@ -2538,19 +2688,31 @@ function App() {
                 <div className="panel-title-row">
                   <h2>Cok Oyunculu Lobi Paneli</h2>
                   <span className={wsConnected ? 'socket-status live' : 'socket-status down'}>
-                    {wsConnected ? 'Socket online' : 'Socket offline'}
+                    {wsConnected ? 'Socket online' : 'Socket offline'} ({connectionMode.toUpperCase()})
                   </span>
                 </div>
                 <div className="lobby-controls">
                   <label>
                     Sunucu Havuzu
-                    <select value={lobbyRegion} onChange={(event) => setLobbyRegion(event.target.value)}>
-                      {lobbyRegions.map((region) => (
+                    <select
+                      value={lobbyRegion}
+                      onChange={(event) => handleLobbyRegionChange(event.target.value)}
+                    >
+                      {serverRegions.map((region) => (
                         <option key={region} value={region}>
                           {region}
                         </option>
                       ))}
                     </select>
+                  </label>
+                  <label>
+                    Gercek Zamanli Backend URL
+                    <input
+                      type="text"
+                      value={backendUrl}
+                      onChange={(event) => setBackendUrl(event.target.value)}
+                      placeholder="http://localhost:8787"
+                    />
                   </label>
                   <div className="button-row">
                     <button type="button" className="primary-btn no-top" onClick={toggleReadyState}>
@@ -2582,6 +2744,43 @@ function App() {
                         <span className={player.ready ? 'ready-badge on' : 'ready-badge off'}>
                           {player.ready ? 'Hazir' : 'Beklemede'}
                         </span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+
+              <section className="panel">
+                <h2>Gercek Sunucu Ihaleleri</h2>
+                {liveTenderRows.length === 0 && (
+                  <p className="muted">
+                    Canli ihale verisi gelmedi. Backend URL ve baglanti durumunu kontrol et.
+                  </p>
+                )}
+                <div className="live-tender-list">
+                  {liveTenderRows.map((tender) => (
+                    <article key={tender.id} className="live-tender-item">
+                      <div>
+                        <strong>{tender.title}</strong>
+                        <p>
+                          {tender.routeLabel} | {modeLabels[tender.mode]} | {tender.tons} ton
+                        </p>
+                        <p>
+                          Lider: {tender.currentLeader} | Son teklif: {formatMoney(tender.currentBid)}
+                        </p>
+                      </div>
+                      <div className="lobby-player-meta">
+                        <span className={tender.timeLeftSec < 20 ? 'countdown urgent' : 'countdown'}>
+                          {formatCountdown(tender.timeLeftSec)}
+                        </span>
+                        <button
+                          type="button"
+                          className="ghost-btn compact-btn"
+                          disabled={!tender.isOpen}
+                          onClick={() => placeRealtimeBid(tender.id, tender.currentBid, tender.bidStep)}
+                        >
+                          Canli Teklif Ver
+                        </button>
                       </div>
                     </article>
                   ))}
