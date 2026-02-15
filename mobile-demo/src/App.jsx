@@ -1436,7 +1436,9 @@ function App() {
       wearVehicle(wearItem.vehicleId, wearItem.wearAmount, wearItem.riskContext, wearItem.source)
     })
   }
-  settleDueEventsRef.current = settleDueEvents
+  useEffect(() => {
+    settleDueEventsRef.current = settleDueEvents
+  }, [settleDueEvents])
 
   useEffect(() => {
     if (!wsConnected) {
