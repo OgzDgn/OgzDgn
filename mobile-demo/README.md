@@ -6,10 +6,12 @@ Bu klasor, istedigin "dunya capinda mobil ticaret oyunu" icin hazirlanan Expo ta
 
 - Gercek sehirler: New York, Shanghai, Istanbul, Dubai, Hamburg, Tokyo
 - Gercek limanlar ve ticaret rotalari (kara/deniz/hava)
+- Harita gorunumu: marker + rota polyline + rota risk analizi
 - Zor ekonomi: enflasyon, doviz, yakit, kredi-borc, yatirimci baskisi, iflas riski
 - Risk sistemi: korsan, sinir krizi, hava yasaklari, liman grevi, vergi cezasi
 - Kooperatif mekanigi: ortak filo, savunma fonu, gelir paylasimi, global siralama
 - Kriz sezonu: savas, petrol krizi, pandemi, liman grevi, sinir krizi
+- Cevrimici panel: backend URL, oda baglantisi, online oyuncu listesi, online lider tablo
 
 ## Lokal calistirma
 
@@ -41,6 +43,25 @@ npx expo start --tunnel
 
 `--tunnel` ozellikle farkli ag/VPN durumlarinda daha stabil baglanti saglar.
 
+## Cevrimici backend ile calistirma
+
+1. Ayrica backend'i ac:
+
+```bash
+cd backend
+npm install
+npm start
+```
+
+2. Mobil uygulamada `Kriz` sekmesine gir.
+3. "Cevrimici cok oyunculu baglanti" kartinda:
+   - Backend URL
+   - Oda ID
+   - Oyuncu / Sirket
+     alanlarini doldurup odaya baglan.
+
+> Fiziksel telefondan baglaniyorsan `localhost` yerine bilgisayarinin LAN IP adresini kullan.
+
 ## Not
 
-Bu repo frontend demo odaklidir; cok oyunculu altyapi, kalici hesap sistemi ve gercek zamanli sunucu mantigi sonraki adimda backend ile tamamlanir.
+Bu yapi demo amaclidir; production icin kimlik dogrulama, veritabani kaliciligi, rate-limit ve anti-cheat katmanlari eklenmelidir.

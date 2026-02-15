@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
   SafeAreaView,
@@ -7,8 +7,11 @@ import {
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   View,
 } from 'react-native';
+import MapView, { Marker, Polyline } from 'react-native-maps';
+import { io, type Socket } from 'socket.io-client';
 
 type TabKey = 'Harita' | 'Operasyon' | 'Kooperatif' | 'Finans' | 'Kriz';
 type TransportMode = 'Kara' | 'Deniz' | 'Hava';
@@ -26,6 +29,8 @@ interface City {
   country: string;
   region: string;
   port: string;
+  latitude: number;
+  longitude: number;
   taxRate: number;
   risk: number;
   demand: number;
@@ -92,6 +97,24 @@ interface LeaderboardRow {
   score: number;
 }
 
+interface OnlinePlayer {
+  id: string;
+  name: string;
+  company: string;
+  cash: number;
+  shipments: number;
+  online: boolean;
+}
+
+interface OnlineRoomSnapshot {
+  roomId: string;
+  week: number;
+  crisis: CrisisKey;
+  coopFund: number;
+  players: OnlinePlayer[];
+  leaderboard: LeaderboardRow[];
+}
+
 const tabs: TabKey[] = ['Harita', 'Operasyon', 'Kooperatif', 'Finans', 'Kriz'];
 const gameModes: GameMode[] = [
   'Kuresel Lig',
@@ -100,12 +123,16 @@ const gameModes: GameMode[] = [
   'Kriz Sezonu',
 ];
 
+const DEFAULT_BACKEND_URL = 'http://localhost:4000';
+
 const cities: City[] = [
   {
     name: 'New York',
     country: 'USA',
     region: 'Kuzey Amerika',
     port: 'Port of New York and New Jersey',
+    latitude: 40.7128,
+    longitude: -74.006,
     taxRate: 0.18,
     risk: 0.17,
     demand: 1.3,
@@ -116,6 +143,8 @@ const cities: City[] = [
     country: 'China',
     region: 'Asya',
     port: 'Port of Shanghai',
+    latitude: 31.2304,
+    longitude: 121.4737,
     taxRate: 0.16,
     risk: 0.14,
     demand: 1.36,
@@ -126,6 +155,8 @@ const cities: City[] = [
     country: 'Turkiye',
     region: 'Avrupa-Asya',
     port: 'Port of Ambarli',
+    latitude: 41.0082,
+    longitude: 28.9784,
     taxRate: 0.22,
     risk: 0.23,
     demand: 1.22,
@@ -136,6 +167,8 @@ const cities: City[] = [
     country: 'UAE',
     region: 'Orta Dogu',
     port: 'Port of Jebel Ali',
+    latitude: 25.2048,
+    longitude: 55.2708,
     taxRate: 0.13,
     risk: 0.19,
     demand: 1.2,
@@ -146,6 +179,8 @@ const cities: City[] = [
     country: 'Germany',
     region: 'Avrupa',
     port: 'Port of Hamburg',
+    latitude: 53.5511,
+    longitude: 9.9937,
     taxRate: 0.19,
     risk: 0.12,
     demand: 1.19,
@@ -156,6 +191,8 @@ const cities: City[] = [
     country: 'Japan',
     region: 'Asya',
     port: 'Port of Tokyo',
+    latitude: 35.6762,
+    longitude: 139.6503,
     taxRate: 0.17,
     risk: 0.13,
     demand: 1.28,
@@ -394,10 +431,36 @@ export default function App() {
   const [eventFeed, setEventFeed] = useState<string[]>([
     'Hafta 1: Kuresel pazar acildi. Ilk ihaleler yayinlandi.',
   ]);
+  const [mapModeFilter, setMapModeFilter] = useState<'Tum' | TransportMode>('Tum');
+  const [backendUrl, setBackendUrl] = useState<string>(DEFAULT_BACKEND_URL);
+  const [roomId, setRoomId] = useState<string>('global-room');
+  const [playerName, setPlayerName] = useState<string>('Mobil Komutan');
+  const [playerCompany, setPlayerCompany] = useState<string>('Ticarium Union');
+  const [onlineConnected, setOnlineConnected] = useState<boolean>(false);
+  const [onlineError, setOnlineError] = useState<string | null>(null);
+  const [onlineWeek, setOnlineWeek] = useState<number>(1);
+  const [onlinePlayers, setOnlinePlayers] = useState<OnlinePlayer[]>([]);
+  const [onlineLeaderboard, setOnlineLeaderboard] = useState<LeaderboardRow[]>([]);
+  const socketRef = useRef<Socket | null>(null);
+  const [onlinePlayerId, setOnlinePlayerId] = useState<string | null>(null);
 
   const routesByMode = useMemo(
     () => routes.filter((route) => route.mode === selectedMode),
     [selectedMode],
+  );
+
+  const cityByName = useMemo(
+    () =>
+      cities.reduce<Record<string, City>>((acc, city) => {
+        acc[city.name] = city;
+        return acc;
+      }, {}),
+    [],
+  );
+
+  const mapRoutes = useMemo(
+    () => routes.filter((route) => mapModeFilter === 'Tum' || route.mode === mapModeFilter),
+    [mapModeFilter],
   );
 
   const selectedRoute = useMemo(
@@ -425,6 +488,23 @@ export default function App() {
   const playerRank =
     leaderboard.findIndex((row) => row.company === 'Senin Kooperatifin') + 1;
 
+  const routeDensityByCity = useMemo(() => {
+    return cities
+      .map((city) => {
+        const linked = routes.filter((route) => route.from === city.name || route.to === city.name).length;
+        return {
+          city: city.name,
+          linked,
+        };
+      })
+      .sort((a, b) => b.linked - a.linked);
+  }, []);
+
+  const averageCityTax = useMemo(
+    () => cities.reduce((sum, city) => sum + city.taxRate, 0) / cities.length,
+    [],
+  );
+
   const tenderProgress = clamp(
     economy.shipments * 7 - economy.failedShipments * 5 + coopFund / 65000,
     0,
@@ -442,6 +522,89 @@ export default function App() {
   const addFeedEntry = (entry: string) => {
     setEventFeed((prev) => [entry, ...prev].slice(0, 12));
   };
+
+  const applyOnlineSnapshot = (snapshot: OnlineRoomSnapshot) => {
+    setOnlineWeek(snapshot.week);
+    setOnlinePlayers(snapshot.players);
+    setOnlineLeaderboard(snapshot.leaderboard);
+    setCoopFund(snapshot.coopFund);
+  };
+
+  const disconnectOnline = () => {
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+    setOnlineConnected(false);
+  };
+
+  const refreshOnlineState = async () => {
+    try {
+      const response = await fetch(`${backendUrl}/api/rooms/${encodeURIComponent(roomId)}/state`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const snapshot = (await response.json()) as OnlineRoomSnapshot;
+      applyOnlineSnapshot(snapshot);
+      setOnlineError(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Bilinmeyen baglanti hatasi';
+      setOnlineError(`Sunucu okunamadi: ${message}`);
+    }
+  };
+
+  const connectOnline = async () => {
+    disconnectOnline();
+    setOnlineError(null);
+    await refreshOnlineState();
+
+    const socket = io(backendUrl, {
+      transports: ['websocket'],
+      timeout: 5000,
+      query: {
+        roomId,
+        playerName,
+        company: playerCompany,
+        playerId: onlinePlayerId ?? '',
+      },
+    });
+
+    socket.on('connect', () => {
+      setOnlineConnected(true);
+      addFeedEntry(`Hafta ${economy.week}: Cevrimici odaya baglanildi (${roomId}).`);
+    });
+
+    socket.on('disconnect', () => {
+      setOnlineConnected(false);
+      setOnlinePlayerId(null);
+    });
+
+    socket.on('joined', (payload: { playerId: string; snapshot: OnlineRoomSnapshot }) => {
+      setOnlinePlayerId(payload.playerId);
+      applyOnlineSnapshot(payload.snapshot);
+    });
+
+    socket.on('room-state', (snapshot: OnlineRoomSnapshot) => {
+      applyOnlineSnapshot(snapshot);
+    });
+
+    socket.on('server-error', (message: string) => {
+      setOnlineError(message);
+    });
+
+    socket.on('connect_error', (error: Error) => {
+      setOnlineConnected(false);
+      setOnlineError(`Socket baglanti hatasi: ${error.message}`);
+    });
+
+    socketRef.current = socket;
+  };
+
+  useEffect(() => {
+    return () => {
+      disconnectOnline();
+    };
+  }, []);
 
   const applyMacroShift = (state: EconomyState, includeCrisisImpact: boolean): EconomyState => {
     const crisisInflation = includeCrisisImpact ? activeCrisis.inflationDelta : 0;
@@ -581,6 +744,18 @@ export default function App() {
         playerNet,
       )}. ${incidentText}`,
     );
+
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('dispatch-shipment', {
+        playerId: onlinePlayerId,
+        routeId: selectedRoute.id,
+        mode: selectedMode,
+        productId: selectedProduct.id,
+        insured,
+        escorted,
+        taxEvasion,
+      });
+    }
   };
 
   const buyFleetUnit = () => {
@@ -634,6 +809,13 @@ export default function App() {
     setEconomy((prev) => ({ ...prev, cash: prev.cash - amount }));
     setCoopFund((prev) => prev + amount);
     addFeedEntry(`Hafta ${economy.week}: Kooperatif savunma fonuna ${toMoney(amount)} aktarildi.`);
+
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('transfer-defense-fund', {
+        playerId: onlinePlayerId,
+        amount,
+      });
+    }
   };
 
   const nextWeek = () => {
@@ -644,11 +826,22 @@ export default function App() {
       );
       return updated;
     });
+
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('next-week', { playerId: onlinePlayerId });
+    }
   };
 
   const selectCrisis = (crisis: CrisisProfile) => {
     setActiveCrisis(crisis);
     addFeedEntry(`Hafta ${economy.week}: Aktif sezon krizi -> ${crisis.key}.`);
+
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('set-crisis', {
+        playerId: onlinePlayerId,
+        crisis: crisis.key,
+      });
+    }
   };
 
   const randomCrisis = () => {
@@ -667,9 +860,110 @@ export default function App() {
     8,
     240,
   );
+  const busiestHub = routeDensityByCity[0];
+  const riskiestVisibleRoute = mapRoutes.reduce<TradeRoute | null>((current, route) => {
+    if (!current || route.baseRisk > current.baseRisk) {
+      return route;
+    }
+    return current;
+  }, null);
+  const mapRiskAverage =
+    mapRoutes.length > 0
+      ? mapRoutes.reduce((sum, route) => sum + route.baseRisk, 0) / mapRoutes.length
+      : 0;
 
   const renderMapTab = () => (
     <View style={styles.sectionStack}>
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Gercek harita gorunumu ve rota analizi</Text>
+        <View style={styles.chipWrap}>
+          {(['Tum', 'Kara', 'Deniz', 'Hava'] as const).map((mode) => (
+            <Pressable
+              key={mode}
+              style={[styles.chip, mapModeFilter === mode && styles.chipActive]}
+              onPress={() => setMapModeFilter(mode)}
+            >
+              <Text style={[styles.chipText, mapModeFilter === mode && styles.chipTextActive]}>
+                {mode}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <View style={styles.mapContainer}>
+          <MapView
+            style={styles.map}
+            initialRegion={{
+              latitude: 35,
+              longitude: 18,
+              latitudeDelta: 120,
+              longitudeDelta: 120,
+            }}
+          >
+            {mapRoutes.map((route) => {
+              const fromCity = cityByName[route.from];
+              const toCity = cityByName[route.to];
+              if (!fromCity || !toCity) {
+                return null;
+              }
+
+              const strokeColor =
+                route.mode === 'Kara' ? '#22c55e' : route.mode === 'Deniz' ? '#38bdf8' : '#f59e0b';
+              return (
+                <Polyline
+                  key={route.id}
+                  coordinates={[
+                    { latitude: fromCity.latitude, longitude: fromCity.longitude },
+                    { latitude: toCity.latitude, longitude: toCity.longitude },
+                  ]}
+                  strokeColor={selectedRoute?.id === route.id ? '#f43f5e' : strokeColor}
+                  strokeWidth={selectedRoute?.id === route.id ? 4 : 2}
+                />
+              );
+            })}
+
+            {cities.map((city) => (
+              <Marker
+                key={city.name}
+                coordinate={{ latitude: city.latitude, longitude: city.longitude }}
+                title={`${city.name} (${city.country})`}
+                description={`${city.port} | Risk ${toPercent(city.risk)} | Vergi ${toPercent(city.taxRate)}`}
+              />
+            ))}
+          </MapView>
+        </View>
+        <Text style={styles.cardHint}>
+          Cizgi renkleri: Kara yesil, Deniz mavi, Hava turuncu. Secili rota kirmizi vurgulanir.
+        </Text>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Harita analizi ozeti</Text>
+        <View style={styles.financialGrid}>
+          <View style={styles.finCell}>
+            <Text style={styles.finLabel}>En yogun merkez</Text>
+            <Text style={styles.financialValue}>
+              {busiestHub?.city ?? 'Bilinmiyor'} ({busiestHub?.linked ?? 0} rota)
+            </Text>
+          </View>
+          <View style={styles.finCell}>
+            <Text style={styles.finLabel}>Ortalama rota riski</Text>
+            <Text style={styles.financialValue}>{toPercent(mapRiskAverage)}</Text>
+          </View>
+          <View style={styles.finCell}>
+            <Text style={styles.finLabel}>En riskli gorunen rota</Text>
+            <Text style={styles.financialValue}>
+              {riskiestVisibleRoute
+                ? `${riskiestVisibleRoute.from} -> ${riskiestVisibleRoute.to}`
+                : 'Rota secilmedi'}
+            </Text>
+          </View>
+          <View style={styles.finCell}>
+            <Text style={styles.finLabel}>Ortalama sehir vergisi</Text>
+            <Text style={styles.financialValue}>{toPercent(averageCityTax)}</Text>
+          </View>
+        </View>
+      </View>
+
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Gercek sehirler ve limanlar</Text>
         {cities.map((city) => (
@@ -680,6 +974,9 @@ export default function App() {
               </Text>
               <Text style={styles.rowMeta}>{city.region}</Text>
               <Text style={styles.rowMeta}>{city.port}</Text>
+              <Text style={styles.rowMeta}>
+                Koordinat: {city.latitude.toFixed(2)}, {city.longitude.toFixed(2)}
+              </Text>
               <Text style={styles.rowMeta}>Politik durum: {city.politics}</Text>
             </View>
             <View style={styles.metricBadgeColumn}>
@@ -696,7 +993,7 @@ export default function App() {
         <Text style={styles.cardHint}>
           Bir rotaya dokununca operasyon sekmesinde ayni rota secilir.
         </Text>
-        {routes.map((route) => (
+        {mapRoutes.map((route) => (
           <Pressable
             key={route.id}
             onPress={() => {
@@ -936,6 +1233,98 @@ export default function App() {
     </View>
   );
 
+  const renderOnlinePanel = () => (
+    <View style={styles.card}>
+      <Text style={styles.cardTitle}>Cevrimici cok oyunculu baglanti</Text>
+      <Text style={styles.cardHint}>
+        Backend URL ve oda bilgisini gir, sonra baglan. Bagliyken sevkiyat/kriz hareketleri socket ile odaya yayilir.
+      </Text>
+
+      <Text style={styles.inputLabel}>Backend URL</Text>
+      <TextInput
+        value={backendUrl}
+        onChangeText={setBackendUrl}
+        autoCapitalize="none"
+        autoCorrect={false}
+        style={styles.input}
+        placeholder="http://localhost:4000"
+        placeholderTextColor="#64748b"
+      />
+
+      <Text style={styles.inputLabel}>Oda ID</Text>
+      <TextInput
+        value={roomId}
+        onChangeText={setRoomId}
+        autoCapitalize="none"
+        autoCorrect={false}
+        style={styles.input}
+        placeholder="global-room"
+        placeholderTextColor="#64748b"
+      />
+
+      <Text style={styles.inputLabel}>Oyuncu / Sirket</Text>
+      <View style={styles.inlineInputs}>
+        <TextInput
+          value={playerName}
+          onChangeText={setPlayerName}
+          style={[styles.input, styles.inlineInput]}
+          autoCorrect={false}
+          placeholder="Oyuncu adi"
+          placeholderTextColor="#64748b"
+        />
+        <TextInput
+          value={playerCompany}
+          onChangeText={setPlayerCompany}
+          style={[styles.input, styles.inlineInput]}
+          autoCorrect={false}
+          placeholder="Sirket"
+          placeholderTextColor="#64748b"
+        />
+      </View>
+
+      <View style={styles.buttonRow}>
+        <Pressable style={styles.secondaryButton} onPress={onlineConnected ? disconnectOnline : connectOnline}>
+          <Text style={styles.secondaryButtonText}>{onlineConnected ? 'Baglantiyi kes' : 'Odaya baglan'}</Text>
+        </Pressable>
+        <Pressable style={styles.secondaryButton} onPress={refreshOnlineState}>
+          <Text style={styles.secondaryButtonText}>Durumu yenile</Text>
+        </Pressable>
+      </View>
+
+      <Text style={styles.rowMeta}>
+        Durum: {onlineConnected ? 'Bagli' : 'Bagli degil'} | Oda hafta: {onlineWeek}
+      </Text>
+      {onlineError ? <Text style={[styles.rowMeta, styles.negative]}>{onlineError}</Text> : null}
+
+      {onlinePlayers.length > 0 ? (
+        <View style={styles.subSection}>
+          <Text style={styles.rowTitle}>Odadaki oyuncular</Text>
+          {onlinePlayers.map((player) => (
+            <View key={player.id} style={styles.rankRow}>
+              <Text style={styles.rowMeta}>
+                {player.name} ({player.company}) {onlinePlayerId === player.id ? '[sen]' : ''}
+              </Text>
+              <Text style={styles.rowMeta}>
+                Nakit {toMoney(player.cash)} | Sevkiyat {player.shipments} | {player.online ? 'online' : 'offline'}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      {onlineLeaderboard.length > 0 ? (
+        <View style={styles.subSection}>
+          <Text style={styles.rowTitle}>Online lider tablosu</Text>
+          {onlineLeaderboard.map((row, index) => (
+            <Text key={row.company} style={styles.rowMeta}>
+              #{index + 1} {row.company}: {toMoney(row.score)}
+            </Text>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+
   const renderCrisisTab = () => (
     <View style={styles.sectionStack}>
       <View style={styles.card}>
@@ -976,6 +1365,8 @@ export default function App() {
           <Text style={styles.primaryButtonText}>Rastgele kuresel olay</Text>
         </Pressable>
       </View>
+
+      {renderOnlinePanel()}
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Canli olay akisi</Text>
@@ -1190,6 +1581,18 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 12,
   },
+  mapContainer: {
+    height: 280,
+    borderRadius: 10,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    marginBottom: 8,
+  },
+  map: {
+    width: '100%',
+    height: '100%',
+  },
   chipWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1239,6 +1642,36 @@ const styles = StyleSheet.create({
     fontSize: 12,
     flex: 1,
     paddingRight: 8,
+  },
+  inputLabel: {
+    color: '#94a3b8',
+    fontSize: 11,
+    marginBottom: 4,
+    marginTop: 6,
+  },
+  input: {
+    backgroundColor: '#111827',
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 10,
+    color: '#e2e8f0',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 12,
+    marginBottom: 6,
+  },
+  inlineInputs: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  inlineInput: {
+    flex: 1,
+  },
+  subSection: {
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#1f2937',
+    paddingTop: 8,
   },
   buttonRow: {
     flexDirection: 'row',
