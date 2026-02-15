@@ -1,9 +1,6 @@
 name: Deploy Mobile Demo to GitHub Pages
 
 on:
-  push:
-    branches:
-      - cursor/mobil-k-resel-ticaret-oyunu-55de
   workflow_dispatch:
 
 permissions:
