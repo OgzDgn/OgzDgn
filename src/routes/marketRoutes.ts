@@ -131,10 +131,17 @@ router.post("/auctions/:auctionId/bid", requireAuth, antiCheatGuard, async (req,
     return res.status(400).json({ ok: false, error: parsed.error.flatten() });
   }
 
+  const auctionId = Array.isArray(req.params.auctionId)
+    ? req.params.auctionId[0]
+    : req.params.auctionId;
+  if (!auctionId) {
+    return res.status(400).json({ ok: false, error: "auctionId is required." });
+  }
+
   try {
     const auction = await placeAuctionBid({
       userId: req.auth!.userId,
-      auctionId: req.params.auctionId,
+      auctionId,
       bidAmount: parsed.data.bidAmount
     });
 
@@ -156,8 +163,15 @@ router.post("/auctions/:auctionId/bid", requireAuth, antiCheatGuard, async (req,
 });
 
 router.post("/auctions/:auctionId/settle", requireAuth, async (req, res) => {
+  const auctionId = Array.isArray(req.params.auctionId)
+    ? req.params.auctionId[0]
+    : req.params.auctionId;
+  if (!auctionId) {
+    return res.status(400).json({ ok: false, error: "auctionId is required." });
+  }
+
   try {
-    const auction = await settleAuction(req.params.auctionId);
+    const auction = await settleAuction(auctionId);
     return res.json({
       ok: true,
       auction
